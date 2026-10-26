@@ -6,6 +6,7 @@ const { pathToFileURL } = require('url');
 const { execFile, execFileSync, spawn } = require('child_process');
 const pty = require('@lydell/node-pty');
 const lib = require('./lib');
+const version = require('./build/version');
 
 const IS_WIN = process.platform === 'win32';
 // launched from a desktop menu, PATH lacks what ~/.bashrc adds (brew, nvm), so claude's MCP servers and npx go missing.
@@ -22,6 +23,11 @@ const pinsFile = () => path.join(app.getPath('userData'), 'pins.json');
 const readPins = () => { try { return JSON.parse(fs.readFileSync(pinsFile(), 'utf8')); } catch { return []; } };
 const writePins = pins => fs.writeFileSync(pinsFile(), JSON.stringify(pins, null, 2));
 const isDir = p => { try { return fs.statSync(p).isDirectory(); } catch { return false; } };
+const ignoredFile = () => path.join(app.getPath('userData'), 'github-ignored.json');
+const readIgnored = () => { try { return JSON.parse(fs.readFileSync(ignoredFile(), 'utf8')); } catch { return []; } };
+
+// packaged builds carry the version build/dist.js gave them; a dev run works it out from git
+ipcMain.handle('version', () => { try { return app.isPackaged ? app.getVersion() : `${version(__dirname)}-dev`; } catch { return app.getVersion(); } });
 
 ipcMain.handle('projects', async () => (await lib.listProjects({ pins: readPins() })).map(p => ({
   ...p, graphUrl: p.hasGraph ? pathToFileURL(path.join(p.path, 'graphify-out', 'graph.html')).href : null,
@@ -63,19 +69,21 @@ ipcMain.handle('usage', async () => {
 
 // Updates rebuild from the local clone. shortcut: assumes it lives in ~/claude-deck; make it a setting if that changes
 const SOURCE = path.join(os.homedir(), 'claude-deck');
-const run = (cmd, args, onOut) => new Promise((res, rej) => {
-  const p = execFile(cmd, args, { cwd: SOURCE, shell: IS_WIN, maxBuffer: 64 << 20 },
+const sh = (cmd, args, cwd, onOut) => new Promise((res, rej) => {
+  const p = execFile(cmd, args, { cwd, shell: IS_WIN, maxBuffer: 64 << 20 },
     (err, out, errOut) => (err ? rej(new Error(String(errOut || err.message).trim().split('\n').pop())) : res(out.trim())));
   if (onOut) { p.stdout.on('data', onOut); p.stderr.on('data', onOut); }
 });
+const run = (cmd, args, onOut) => sh(cmd, args, SOURCE, onOut);
 // electron-builder's log lines, mapped to how far through the update they come
 const BUILD_STAGES = [[/@electron\/rebuild/, 30], [/packaging/, 45], [/building\s+target=/, 65]];
-// a packaged build stamps its commit at build time (predist); a dev run is whatever is checked out
+// a packaged build stamps its commit at build time (build/dist.js); a dev run is whatever is checked out
 const builtFrom = () => (app.isPackaged ? fs.readFileSync(path.join(__dirname, 'build', 'commit.txt'), 'utf8').trim() : run('git', ['rev-parse', 'HEAD']));
 ipcMain.handle('update:check', async () => {
   if (!isDir(path.join(SOURCE, '.git'))) throw new Error(`No Claude Deck source folder at ${SOURCE}`);
   await run('git', ['fetch', '--quiet']);
-  return Number(await run('git', ['rev-list', '--count', `${await builtFrom()}..@{u}`]));
+  const behind = Number(await run('git', ['rev-list', '--count', `${await builtFrom()}..@{u}`]));
+  return { behind, version: behind ? version(SOURCE, '@{u}') : null };
 });
 ipcMain.handle('update:install', async e => {
   const step = (s, pct) => e.sender.send('update:step', s, pct);
@@ -105,6 +113,28 @@ ipcMain.handle('update:install', async e => {
   spawn(target, [], { detached: true, stdio: 'ignore', cwd: os.homedir(), env }).unref();
   app.quit();
 });
+
+// Your GitHub repos (via the signed-in gh CLI) that aren't on this computer yet
+let offered = new Set();
+ipcMain.handle('github:new', async () => {
+  let repos;
+  try {
+    repos = JSON.parse(await sh('gh', ['repo', 'list', '--no-archived', '--limit', '200', '--json', 'nameWithOwner,name,description'], os.homedir()));
+  } catch { return []; } // gh missing or signed out: nothing to offer
+  const ignored = new Set(readIgnored());
+  const missing = lib.missingRepos(repos, await lib.listProjects({ pins: readPins() })).filter(r => !ignored.has(r.nameWithOwner));
+  offered = new Set(missing.map(r => r.nameWithOwner));
+  return missing;
+});
+ipcMain.handle('github:clone', async (e, nameWithOwner) => {
+  if (!offered.has(nameWithOwner)) throw new Error(`${nameWithOwner} wasn't offered for cloning.`);
+  const dest = path.join(os.homedir(), nameWithOwner.split('/')[1]);
+  if (fs.existsSync(dest)) throw new Error(`${dest} already exists.`);
+  await sh('gh', ['repo', 'clone', nameWithOwner, dest], os.homedir());
+  return dest;
+});
+ipcMain.handle('github:ignore', (e, names) =>
+  fs.writeFileSync(ignoredFile(), JSON.stringify([...new Set([...readIgnored(), ...names.filter(n => offered.has(n))])], null, 2)));
 
 const terms = new Map();
 let nextId = 1;

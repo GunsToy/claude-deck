@@ -24,6 +24,7 @@ const lib = require('./lib');
   fs.writeFileSync(path.join(claudeDir, 's1.jsonl'), JSON.stringify({ type: 'user', cwd: app, message: { content: 'hello' } }) + '\n');
   mk('code', 'repo', '.git');
   fs.writeFileSync(path.join(home, 'code', 'repo', '.git', 'HEAD'), 'ref: refs/heads/main\n');
+  fs.writeFileSync(path.join(home, 'code', 'repo', '.git', 'config'), '[core]\n\tbare = false\n[remote "origin"]\n\turl = git@github.com:Me/Site.git\n\tfetch = +refs/heads/*:refs/remotes/origin/*\n');
   mk('code', 'repo', 'graphify-out');
   fs.writeFileSync(path.join(home, 'code', 'repo', 'graphify-out', 'graph.html'), '<p>g</p>');
   mk('node_modules', 'pkg', '.git'); // must be skipped
@@ -35,6 +36,9 @@ const lib = require('./lib');
   assert.strictEqual(by('app').sessions, 1);
   assert.ok(by('repo').git && by('repo').hasGraph && by('repo').branch === 'main');
   assert.ok(by('notes').pinned);
+  assert.strictEqual(by('repo').remote, 'me/site', 'ssh remote, folder named differently');
+  const gh = ['Me/Site', 'Me/Notes', 'Me/New-Thing'].map(n => ({ nameWithOwner: n, name: n.split('/')[1] }));
+  assert.deepStrictEqual(lib.missingRepos(gh, ps).map(r => r.name), ['New-Thing'], 'matched by remote, then by folder name');
   assert.deepStrictEqual((await lib.sessions(claudeDir)).map(s => s.title), ['hello']);
 
   fs.rmSync(home, { recursive: true, force: true });

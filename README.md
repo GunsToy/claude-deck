@@ -14,6 +14,14 @@ The bars at the bottom of the sidebar show your Claude plan usage: the 5-hour se
 
 **Updates** checks GitHub for changes newer than the build you're running. If there are any, it pulls them into `~/claude-deck`, rebuilds (a progress bar shows how far along it is), replaces the installed AppImage (on Windows it opens the new installer) and restarts.
 
+## New projects on GitHub
+
+When Claude Deck opens, it asks the GitHub CLI (`gh`, signed in with `gh auth login`) for your repositories. If any aren't on this computer yet, it offers to pull them into your home folder. **Don't ask again** stops it offering those ones. Without `gh` it skips the check.
+
+## Versions
+
+The version next to the name is `major.minor` from `package.json` plus the number of commits, so every push to GitHub builds as a new version. Change `major.minor` in `package.json` by hand when you want a bigger jump.
+
 ## Run
 
 ```

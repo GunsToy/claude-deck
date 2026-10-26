@@ -29,6 +29,7 @@ function toast(msg) {
   t.textContent = msg; t.hidden = false;
   clearTimeout(toast.timer); toast.timer = setTimeout(() => (t.hidden = true), 4000);
 }
+const errText = err => String(err.message || err).replace(/^Error invoking remote method '[^']+': (Error: )?/, '');
 const projectOf = cwd => projects.find(p => same(p.path, cwd));
 const nameOf = cwd => projectOf(cwd)?.name || cwd?.split(/[\\/]/).filter(Boolean).pop() || 'Session';
 
@@ -167,7 +168,7 @@ async function openTerm({ cwd, kind = 'claude', args = [], title }) {
   } catch (err) {
     term.dispose(); el.remove();
     show(view.type === 'term' ? { type: 'home' } : view);
-    return toast(String(err.message || err).replace(/^Error invoking remote method '[^']+': (Error: )?/, ''));
+    return toast(errText(err));
   }
   const t = { term, fit, search, el, cwd, exited: false, title: title || (kind === 'shell' ? `Shell · ${nameOf(cwd)}` : nameOf(cwd)) };
   terms.set(id, t);
@@ -337,14 +338,44 @@ $('updateBtn').onclick = async () => {
   const btn = $('updateBtn');
   btn.disabled = true; updateLabel('Checking…');
   try {
-    const n = await deck.updateCheck();
+    const { behind: n, version } = await deck.updateCheck();
     if (!n) return toast('Claude Deck is up to date.');
     const open = [...terms.values()].filter(t => !t.exited).length;
-    if (!confirm(`${n} new change${n > 1 ? 's' : ''} on GitHub. Update and restart Claude Deck?${open ? `\n\nThis closes ${open} open terminal tab${open > 1 ? 's' : ''}.` : ''}`)) return;
+    if (!confirm(`Version ${version} is on GitHub (${n} new change${n > 1 ? 's' : ''}). Update and restart Claude Deck?${open ? `\n\nThis closes ${open} open terminal tab${open > 1 ? 's' : ''}.` : ''}`)) return;
     await deck.updateInstall();
   } catch (err) {
-    toast(String(err.message || err).replace(/^Error invoking remote method '[^']+': (Error: )?/, ''));
+    toast(errText(err));
   } finally { btn.disabled = false; updateLabel('Updates'); updateProgress('', null); }
+};
+
+// ---------- new GitHub repos ----------
+async function checkGithub() {
+  const repos = await deck.githubNew();
+  if (!repos.length) return;
+  $('ghList').innerHTML = repos.map(r => `
+    <label class="gh-row"><input type="checkbox" value="${esc(r.nameWithOwner)}" checked>
+      <span class="grow"><b>${esc(r.name)}</b><small>${esc(r.description || r.nameWithOwner)}</small></span>
+      <span class="gh-status" aria-live="polite"></span></label>`).join('');
+  $('ghDialog').showModal();
+}
+const ghBoxes = () => [...$('ghList').querySelectorAll('input')];
+$('ghLater').onclick = () => $('ghDialog').close();
+$('ghIgnore').onclick = async () => { await deck.githubIgnore(ghBoxes().map(b => b.value)); $('ghDialog').close(); };
+$('ghClone').onclick = async () => {
+  const picked = ghBoxes().filter(b => b.checked && !b.disabled);
+  if (!picked.length) return $('ghDialog').close();
+  const buttons = $('ghDialog').querySelectorAll('button');
+  buttons.forEach(b => (b.disabled = true));
+  let failed = 0;
+  for (const box of picked) {
+    const status = box.closest('.gh-row').querySelector('.gh-status');
+    status.className = 'gh-status'; status.textContent = 'Pulling…';
+    try { await deck.githubClone(box.value); status.textContent = 'Done'; box.disabled = true; }
+    catch (err) { failed++; status.className = 'gh-status err'; status.textContent = errText(err); }
+  }
+  buttons.forEach(b => (b.disabled = false));
+  await load();
+  if (!failed) { $('ghDialog').close(); toast(`Pulled ${picked.length} project${picked.length > 1 ? 's' : ''} into your home folder.`); }
 };
 
 async function addFolder() {
@@ -372,5 +403,6 @@ document.addEventListener('keydown', e => {
   }
 });
 
-load().then(() => show({ type: 'home' }));
+load().then(() => { show({ type: 'home' }); checkGithub(); });
 loadUsage();
+deck.version().then(v => ($('version').textContent = v));

@@ -260,6 +260,28 @@ h1 { margin: 0; font-weight: 500; letter-spacing: -0.025em; }
 .find input::placeholder { color: var(--fg3); }
 .find #findCount { font-size: 12px; min-width: 52px; text-align: right; margin-right: 4px; }
 
+.ver { color: var(--fg4); font-size: 11.5px; font-weight: 400; margin-left: -4px; }
+
+/* ---------- GitHub dialog ---------- */
+.modal {
+  width: min(520px, calc(100vw - 32px)); padding: 22px; border-radius: 20px;
+  background: var(--l1); color: var(--fg); border: 1px solid var(--b2); box-shadow: 0 24px 80px rgb(0 0 0 / 70%);
+}
+.modal::backdrop { background: rgb(0 0 0 / 55%); }
+.modal h2 { margin: 0 0 6px; font-size: 18px; font-weight: 600; }
+.modal p { margin: 0 0 16px; font-size: 13px; }
+.gh-list { display: grid; gap: 2px; max-height: 50vh; overflow-y: auto; margin: 0 -8px 18px; }
+.gh-row { display: flex; align-items: center; gap: 12px; padding: 8px; border-radius: 12px; cursor: pointer; }
+.gh-row:hover { background: var(--ghost); }
+.gh-row input { width: 16px; height: 16px; accent-color: #d97757; flex-shrink: 0; }
+.gh-row b { display: block; font-weight: 500; }
+.gh-row small { display: block; color: var(--fg3); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gh-status { font-size: 12px; color: var(--fg3); max-width: 45%; text-align: right; }
+.gh-status.err { color: #f28b82; }
+.modal-actions { display: flex; align-items: center; gap: 8px; }
+.modal-actions .ghost-btn, .modal-actions .primary-btn { height: 36px; }
+.modal button:disabled { opacity: .5; cursor: progress; }
+
 /* ---------- toast ---------- */
 .toast {
   position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);

@@ -14,7 +14,7 @@
 <div class="titlebar">
   <div class="brand">
     <svg class="logo" viewBox="0 0 24 24" aria-hidden="true"><rect x="1.5" y="1.5" width="21" height="21" rx="6.5" fill="#1c1c1c" stroke="#2e2e2e" stroke-width=".6"/><path d="M12 12L12 3.4M12 12L15.98 6.09M12 12L18.93 7.5M12 12L18.59 12.23M12 12L19.59 16.04M12 12L15.12 18.7M12 12L11.86 20.06M12 12L8.99 18.16M12 12L4.46 15.84M12 12L4.74 12.13M12 12L5.27 7.8M12 12L8.34 6.36" stroke="#d97757" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
-    <span>Claude Deck</span>
+    <span>Claude Deck</span><span class="ver mono" id="version"></span>
   </div>
   <nav class="tabs" id="tabs" aria-label="Open sessions"></nav>
 </div>
@@ -115,6 +115,18 @@
     </section>
   </main>
 </div>
+
+<dialog class="modal" id="ghDialog" aria-labelledby="ghTitle">
+  <h2 id="ghTitle">New on GitHub</h2>
+  <p class="dim">These repositories are on your GitHub but not on this computer. Pick the ones to pull down into your home folder.</p>
+  <div class="gh-list" id="ghList"></div>
+  <div class="modal-actions">
+    <button class="ghost-btn" id="ghIgnore" title="Stop asking about these repositories">Don't ask again</button>
+    <span class="grow"></span>
+    <button class="ghost-btn" id="ghLater">Not now</button>
+    <button class="primary-btn" id="ghClone">Pull selected</button>
+  </div>
+</dialog>
 
 <div class="toast" id="toast" role="status" hidden></div>
 

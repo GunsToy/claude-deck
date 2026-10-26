@@ -74,6 +74,21 @@ function gitBranch(dir) {
   } catch { return null; }
 }
 
+// "owner/name" of a GitHub origin (https or ssh URL), lowercased for matching
+function gitRemote(dir) {
+  try {
+    const url = fs.readFileSync(path.join(dir, '.git', 'config'), 'utf8').match(/\[remote "origin"\][^[]*?url\s*=\s*(\S+)/)?.[1];
+    return url?.match(/github\.com[:/](.+?)(?:\.git)?\/?$/i)?.[1].toLowerCase() || null;
+  } catch { return null; }
+}
+
+// GitHub repos with no local copy: matched by origin URL, or by a folder already using the repo's name
+function missingRepos(repos, projects) {
+  const remotes = new Set(projects.map(p => p.remote).filter(Boolean));
+  const names = new Set(projects.map(p => p.name.toLowerCase()));
+  return repos.filter(r => !remotes.has(r.nameWithOwner.toLowerCase()) && !names.has(r.name.toLowerCase()));
+}
+
 // Merges three sources: folders Claude Code has run in, git repos / graphify outputs near home, and pinned folders.
 async function listProjects({ home = os.homedir(), claudeDir = path.join(home, '.claude', 'projects'), pins = [], depth = 3 } = {}) {
   const map = new Map();
@@ -111,6 +126,7 @@ async function listProjects({ home = os.homedir(), claudeDir = path.join(home, '
   return [...map.values()].map(p => ({
     ...p,
     branch: gitBranch(p.path),
+    remote: gitRemote(p.path),
     hasGraph: exists(path.join(p.path, 'graphify-out', 'graph.html')),
     hasReport: exists(path.join(p.path, 'graphify-out', 'GRAPH_REPORT.md')),
   })).sort((a, b) => b.lastActive - a.lastActive);
@@ -132,4 +148,4 @@ async function recentSessions(claudeDir, limit = 6) {
   })));
 }
 
-module.exports = { findClaude, listProjects, sessions, recentSessions, titleOf, cwdOf };
+module.exports = { findClaude, listProjects, sessions, recentSessions, titleOf, cwdOf, missingRepos };

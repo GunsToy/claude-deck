@@ -6,8 +6,7 @@
   "scripts": {
     "start": "electron .",
     "test": "node test.js",
-    "predist": "git rev-parse HEAD > build/commit.txt",
-    "dist": "electron-builder"
+    "dist": "node build/dist.js"
   },
   "author": "Claude Deck",
   "license": "MIT",
@@ -42,6 +41,7 @@
       "styles.css",
       "build/icon.png",
       "build/commit.txt",
+      "build/version.js",
       "node_modules/**/*"
     ],
     "asarUnpack": [

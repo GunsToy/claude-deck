@@ -70,7 +70,7 @@ ipcMain.handle('usage', async () => {
 
 // GIT_TERMINAL_PROMPT=0: no terminal to answer a credential prompt, so fail instead of hanging
 const sh = (cmd, args, { cwd, timeout = 0 }, onOut) => new Promise((res, rej) => {
-  const p = execFile(cmd, args, { cwd, timeout, shell: IS_WIN, maxBuffer: 64 << 20, env: { ...process.env, GIT_TERMINAL_PROMPT: '0' } },
+  const p = execFile(cmd, args, { cwd, timeout, maxBuffer: 64 << 20, env: { ...process.env, GIT_TERMINAL_PROMPT: '0' } },
     (err, out, errOut) => {
       if (!err) return res(out.trim());
       // git ends with a bare "Aborting"; its error:/fatal: line is the one that explains
@@ -87,6 +87,9 @@ async function updater() {
   try { token = await sh('gh', ['auth', 'token'], { cwd: os.homedir(), timeout: 15000 }); } catch { /* not signed in */ }
   if (!token) throw new Error('Sign in to the GitHub CLI (gh auth login) to get updates.');
   autoUpdater.autoDownload = false;
+  autoUpdater.disableWebInstaller = true;
+  // blockmaps can't be fetched through the private-repo API, so always take the full installer
+  autoUpdater.disableDifferentialDownload = true;
   autoUpdater.setFeedURL({ provider: 'github', owner: 'GunsToy', repo: 'claude-deck', private: true, token });
   return autoUpdater;
 }

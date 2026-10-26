@@ -247,8 +247,9 @@ h1 { margin: 0; font-weight: 500; letter-spacing: -0.025em; }
 
 /* ---------- terminals ---------- */
 .terms { overflow: hidden; background: var(--base); }
-.term { position: absolute; inset: 0; padding: 14px 6px 8px 18px; }
-.term .xterm { height: 100%; }
+.term { position: absolute; inset: 0; }
+/* padding on .xterm, not .term: the fit addon subtracts only the terminal element's own padding */
+.term .xterm { height: 100%; padding: 14px 6px 8px 18px; }
 .term .xterm-viewport { background: transparent !important; }
 .term .xterm-viewport::-webkit-scrollbar-thumb { background: var(--l2); }
 .find {

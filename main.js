@@ -79,18 +79,12 @@ const sh = (cmd, args, { cwd, timeout = 0 }, onOut) => new Promise((res, rej) =>
     });
   if (onOut) { p.stdout.on('data', onOut); p.stderr.on('data', onOut); }
 });
-// Updates come from this repo's GitHub Releases (published by `npm run release`). The repo is private,
-// so the token comes from the signed-in gh CLI at check time and is never built into the app.
+// Updates come from this repo's public GitHub Releases (published by `npm run release`),
+// as configured by build.publish in package.json
 let updateInfo = null;
 async function updater() {
-  let token;
-  try { token = await sh('gh', ['auth', 'token'], { cwd: os.homedir(), timeout: 15000 }); } catch { /* not signed in */ }
-  if (!token) throw new Error('Sign in to the GitHub CLI (gh auth login) to get updates.');
   autoUpdater.autoDownload = false;
   autoUpdater.disableWebInstaller = true;
-  // blockmaps can't be fetched through the private-repo API, so always take the full installer
-  autoUpdater.disableDifferentialDownload = true;
-  autoUpdater.setFeedURL({ provider: 'github', owner: 'GunsToy', repo: 'claude-deck', private: true, token });
   return autoUpdater;
 }
 ipcMain.handle('update:check', async () => {

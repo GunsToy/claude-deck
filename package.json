@@ -73,8 +73,7 @@
       {
         "provider": "github",
         "owner": "GunsToy",
-        "repo": "claude-deck",
-        "private": true
+        "repo": "claude-deck"
       }
     ],
     "appImage": {

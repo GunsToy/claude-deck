@@ -4,6 +4,15 @@ A desktop app for Claude Code that runs on Windows and Linux. It lists every pro
 
 Projects come from four places: folders you've run Claude Code in (`~/.claude/projects`), git repos and `graphify-out/` folders up to 3 levels below your home folder, and any folders you add with **+**.
 
+## Download
+
+Get the latest installer from [Releases](https://github.com/GunsToy/claude-deck/releases/latest):
+
+- **Windows:** `Claude-Deck-Setup-<version>.exe`. It isn't code-signed, so Windows SmartScreen asks first: choose **More info → Run anyway**.
+- **Linux:** `Claude-Deck-<version>.AppImage`. Make it executable (`chmod +x`) and run it.
+
+You'll need [Claude Code](https://claude.com/claude-code) installed to start sessions.
+
 ## REA
 
 **Set up REA** on the home screen runs `npx rea-agents setup` in a terminal tab, which installs [REA](https://github.com/morluto/rea) (Reverse Engineer Anything) for Claude Code. On a project, **Reverse engineer…** asks you to pick an app or binary, then starts a Claude session in that project that uses REA on it.
@@ -12,11 +21,11 @@ Projects come from four places: folders you've run Claude Code in (`~/.claude/pr
 
 The bars at the bottom of the sidebar show your Claude plan usage: the 5-hour session window and the week, with when each resets. They use Claude Code's login, so sign in to Claude Code first. They refresh every 5 minutes and when you click **Refresh**.
 
-**Updates** checks this repo's GitHub Releases for a newer version, downloads it with a progress bar, installs it and restarts. The repo is private, so it signs in with your GitHub CLI login (`gh auth login`); no token is stored in the app. Installed copies don't need the source code or any build tools.
+**Updates** checks this repo's GitHub Releases for a newer version, downloads it with a progress bar, installs it and restarts. Installed copies don't need the source code, build tools or a GitHub login.
 
 ## New and changed projects on GitHub
 
-When Claude Deck opens, it asks the GitHub CLI (`gh`, signed in with `gh auth login`) for your repositories and fetches every local GitHub repo. If a repository isn't on this computer yet, it offers to clone it into your home folder; if a local copy is behind GitHub, it offers to pull it (fast-forward only, so local changes are never overwritten). `~/claude-deck` itself is left to **Updates**. **Don't ask again** stops it offering those ones. Without `gh` it skips the new-repository check.
+When Claude Deck opens, it asks the GitHub CLI (`gh`, signed in with `gh auth login`) for your repositories and fetches every local GitHub repo. If a repository isn't on this computer yet, it offers to clone it into your home folder; if a local copy is behind GitHub, it offers to pull it (fast-forward only, so local changes are never overwritten). **Don't ask again** stops it offering those ones. Without `gh` it skips the new-repository check.
 
 ## Versions
 

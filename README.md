@@ -12,7 +12,7 @@ Projects come from four places: folders you've run Claude Code in (`~/.claude/pr
 
 The bars at the bottom of the sidebar show your Claude plan usage: the 5-hour session window and the week, with when each resets. They use Claude Code's login, so sign in to Claude Code first. They refresh every 5 minutes and when you click **Refresh**.
 
-**Updates** checks GitHub for changes newer than the build you're running. If there are any, it pulls them into `~/claude-deck`, rebuilds, replaces the installed AppImage (on Windows it opens the new installer) and restarts.
+**Updates** checks GitHub for changes newer than the build you're running. If there are any, it pulls them into `~/claude-deck`, rebuilds (a progress bar shows how far along it is), replaces the installed AppImage (on Windows it opens the new installer) and restarts.
 
 ## Run
 

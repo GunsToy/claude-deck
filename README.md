@@ -38,6 +38,8 @@ npm install
 npm start
 ```
 
+On Windows, `npm start` needs the [Microsoft Visual C++ Redistributable](https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist) the first time, when Electron unpacks itself. Most PCs already have it. The installer from Releases doesn't need it.
+
 ## Release a new version
 
 ```

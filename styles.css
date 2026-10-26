@@ -131,7 +131,7 @@ aside > .primary-btn { width: 100%; }
 .fill { height: 100%; border-radius: inherit; background: #d97757; transition: width .4s var(--ease); }
 .fill.hot { background: #f28b82; }
 .meter small { display: block; color: var(--fg3); margin-top: 4px; }
-.update-track { flex-shrink: 0; height: 4px; margin: 0 8px; }
+.update-box { flex-shrink: 0; padding: 10px 8px 2px; border-top: 1px solid var(--b1); font-size: 12px; }
 .update-track .fill { width: 0; transition: width .8s var(--ease); background: linear-gradient(90deg, #d97757 0 40%, #f0a487 50%, #d97757 60% 100%) 0 0 / 250% 100%; animation: sheen 1.6s linear infinite; }
 @keyframes sheen { from { background-position: 100% 0; } to { background-position: -150% 0; } }
 

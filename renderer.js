@@ -325,13 +325,14 @@ setInterval(loadUsage, 5 * 60000);
 
 // ---------- updates ----------
 const updateLabel = s => ($('updateBtn').querySelector('span').textContent = s);
-function updateProgress(pct) {
-  const bar = $('updateProgress');
-  bar.hidden = pct == null;
-  bar.setAttribute('aria-valuenow', pct ?? 0);
-  bar.firstElementChild.style.width = `${pct ?? 0}%`;
+function updateProgress(step, pct) {
+  $('updateBox').hidden = pct == null;
+  $('updateStep').textContent = step;
+  $('updatePct').textContent = `${pct}%`;
+  $('updateProgress').setAttribute('aria-valuenow', pct ?? 0);
+  $('updateProgress').firstElementChild.style.width = `${pct ?? 0}%`;
 }
-deck.onUpdateStep((s, pct) => { updateLabel(pct == null ? s : `${s} ${pct}%`); updateProgress(pct); });
+deck.onUpdateStep((s, pct) => { updateLabel('Updating…'); updateProgress(s, pct); });
 $('updateBtn').onclick = async () => {
   const btn = $('updateBtn');
   btn.disabled = true; updateLabel('Checking…');
@@ -343,7 +344,7 @@ $('updateBtn').onclick = async () => {
     await deck.updateInstall();
   } catch (err) {
     toast(String(err.message || err).replace(/^Error invoking remote method '[^']+': (Error: )?/, ''));
-  } finally { btn.disabled = false; updateLabel('Updates'); updateProgress(null); }
+  } finally { btn.disabled = false; updateLabel('Updates'); updateProgress('', null); }
 };
 
 async function addFolder() {

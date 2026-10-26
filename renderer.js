@@ -302,6 +302,44 @@ document.addEventListener('click', async e => {
   }
 });
 
+// ---------- usage ----------
+const resetsIn = iso => {
+  const ms = new Date(iso) - Date.now();
+  if (!(ms > 0)) return 'now';
+  if (ms < 86400000) { const m = Math.round(ms / 60000); return `in ${m >= 60 ? `${Math.floor(m / 60)}h ` : ''}${m % 60}m`; }
+  return new Date(iso).toLocaleString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' });
+};
+const meter = (label, w) => {
+  if (!w) return '';
+  const pct = Math.round(w.utilization);
+  return `<div class="meter" role="meter" aria-label="${label}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}">
+    <div class="meter-top"><span>${label}</span><b>${pct}%</b></div>
+    <div class="track"><div class="fill ${pct >= 90 ? 'hot' : ''}" style="width:${Math.min(100, pct)}%"></div></div>
+    <small>Resets ${resetsIn(w.resets_at)}</small></div>`;
+};
+async function loadUsage() {
+  const u = await deck.usage();
+  $('usage').innerHTML = u.error ? `<small class="dim">${esc(u.error)}</small>` : meter('Session (5h)', u.session) + meter('Week', u.week);
+}
+setInterval(loadUsage, 5 * 60000);
+
+// ---------- updates ----------
+const updateLabel = s => ($('updateBtn').querySelector('span').textContent = s);
+deck.onUpdateStep(updateLabel);
+$('updateBtn').onclick = async () => {
+  const btn = $('updateBtn');
+  btn.disabled = true; updateLabel('Checking…');
+  try {
+    const n = await deck.updateCheck();
+    if (!n) return toast('Claude Deck is up to date.');
+    const open = [...terms.values()].filter(t => !t.exited).length;
+    if (!confirm(`${n} new change${n > 1 ? 's' : ''} on GitHub. Update and restart Claude Deck?${open ? `\n\nThis closes ${open} open terminal tab${open > 1 ? 's' : ''}.` : ''}`)) return;
+    await deck.updateInstall();
+  } catch (err) {
+    toast(String(err.message || err).replace(/^Error invoking remote method '[^']+': (Error: )?/, ''));
+  } finally { btn.disabled = false; updateLabel('Updates'); }
+};
+
 async function addFolder() {
   const dir = await deck.pickFolder();
   if (!dir) return;
@@ -311,7 +349,7 @@ async function addFolder() {
 
 $('newBtn').onclick = () => { show({ type: 'home' }); $('homeComposer').querySelector('textarea').focus(); };
 $('addFolder').onclick = addFolder;
-$('refresh').onclick = async () => { await load(); toast(`${projects.length} projects found`); };
+$('refresh').onclick = async () => { await Promise.all([load(), loadUsage()]); toast(`${projects.length} projects found`); };
 $('search').oninput = renderSidebar;
 document.addEventListener('keydown', e => {
   if (!e.ctrlKey) return;
@@ -328,3 +366,4 @@ document.addEventListener('keydown', e => {
 });
 
 load().then(() => show({ type: 'home' }));
+loadUsage();

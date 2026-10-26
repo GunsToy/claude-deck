@@ -6,6 +6,7 @@
   "scripts": {
     "start": "electron .",
     "test": "node test.js",
+    "predist": "git rev-parse HEAD > build/commit.txt",
     "dist": "electron-builder"
   },
   "author": "Claude Deck",
@@ -40,6 +41,7 @@
       "index.html",
       "styles.css",
       "build/icon.png",
+      "build/commit.txt",
       "node_modules/**/*"
     ],
     "asarUnpack": [

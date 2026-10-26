@@ -117,8 +117,20 @@ aside > .primary-btn { width: 100%; }
 .item b { display: block; font-weight: 500; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .item small { display: block; color: var(--fg4); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .item .live { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
-.aside-foot { border-top: 1px solid var(--b1); padding-top: 10px; }
-.aside-foot .ghost-btn { width: 100%; border-color: transparent; height: 34px; }
+.aside-foot { border-top: 1px solid var(--b1); padding-top: 10px; display: flex; gap: 4px; }
+.aside-foot .ghost-btn { flex: 1; min-width: 0; border-color: transparent; height: 34px; padding: 0 10px; }
+.aside-foot .ghost-btn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aside-foot .ghost-btn:disabled { cursor: progress; color: var(--fg3); background: none; }
+
+/* ---------- usage ---------- */
+.usage { display: grid; gap: 10px; padding: 10px 8px 2px; border-top: 1px solid var(--b1); font-size: 12px; }
+.usage:empty { display: none; }
+.meter-top { display: flex; justify-content: space-between; color: var(--fg2); margin-bottom: 5px; }
+.meter-top b { font-weight: 500; color: var(--fg); font-variant-numeric: tabular-nums; }
+.track { height: 6px; border-radius: 999px; background: var(--l2); overflow: hidden; }
+.fill { height: 100%; border-radius: inherit; background: #d97757; transition: width .4s var(--ease); }
+.fill.hot { background: #f28b82; }
+.meter small { display: block; color: var(--fg3); margin-top: 4px; }
 
 .avatar {
   width: 30px; height: 30px; border-radius: 9px; flex-shrink: 0; display: grid; place-items: center;

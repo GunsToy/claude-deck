@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { pathToFileURL } = require('url');
-const { execFileSync } = require('child_process');
+const { execFile, execFileSync } = require('child_process');
 const pty = require('@lydell/node-pty');
 const lib = require('./lib');
 
@@ -43,6 +43,55 @@ ipcMain.handle('pick-target', async e => {
   return r.canceled ? null : r.filePaths[0] || null;
 });
 ipcMain.handle('pin:remove', (e, dir) => writePins(readPins().filter(p => p !== dir)));
+
+// The same numbers Claude Code's /usage shows, read with Claude Code's own login.
+ipcMain.handle('usage', async () => {
+  let o;
+  try { o = JSON.parse(fs.readFileSync(path.join(os.homedir(), '.claude', '.credentials.json'), 'utf8')).claudeAiOauth; } catch { /* not signed in */ }
+  if (!o?.accessToken) return { error: 'Sign in to Claude Code to see usage.' };
+  // refreshing here would rotate Claude Code's refresh token under it, so leave that to Claude Code
+  if (o.expiresAt < Date.now()) return { error: 'Login expired. Start a Claude session to renew it.' };
+  try {
+    const r = await fetch('https://api.anthropic.com/api/oauth/usage', {
+      headers: { Authorization: `Bearer ${o.accessToken}`, 'anthropic-beta': 'oauth-2025-04-20' }, signal: AbortSignal.timeout(10000),
+    });
+    if (!r.ok) throw new Error(r.status);
+    const d = await r.json();
+    return { session: d.five_hour, week: d.seven_day };
+  } catch { return { error: 'Usage is unavailable right now.' }; }
+});
+
+// Updates rebuild from the local clone. shortcut: assumes it lives in ~/claude-deck; make it a setting if that changes
+const SOURCE = path.join(os.homedir(), 'claude-deck');
+const run = (cmd, args) => new Promise((res, rej) => execFile(cmd, args, { cwd: SOURCE, shell: IS_WIN, maxBuffer: 64 << 20 },
+  (err, out, errOut) => (err ? rej(new Error(String(errOut || err.message).trim().split('\n').pop())) : res(out.trim()))));
+// a packaged build stamps its commit at build time (predist); a dev run is whatever is checked out
+const builtFrom = () => (app.isPackaged ? fs.readFileSync(path.join(__dirname, 'build', 'commit.txt'), 'utf8').trim() : run('git', ['rev-parse', 'HEAD']));
+ipcMain.handle('update:check', async () => {
+  if (!isDir(path.join(SOURCE, '.git'))) throw new Error(`No Claude Deck source folder at ${SOURCE}`);
+  await run('git', ['fetch', '--quiet']);
+  return Number(await run('git', ['rev-list', '--count', `${await builtFrom()}..@{u}`]));
+});
+ipcMain.handle('update:install', async e => {
+  const step = s => e.sender.send('update:step', s);
+  step('Pulling…'); await run('git', ['pull', '--ff-only']);
+  step('Installing packages…'); await run('npm', ['install']);
+  if (!app.isPackaged) { app.relaunch(); return app.quit(); }
+  step('Building…'); await run('npm', ['run', 'dist']);
+  const dist = path.join(SOURCE, 'dist');
+  const built = fs.readdirSync(dist).find(f => (IS_WIN ? /Setup.*\.exe$/ : /\.AppImage$/).test(f));
+  if (!built) throw new Error('The build finished but made no installer.');
+  if (IS_WIN) { await shell.openPath(path.join(dist, built)); return app.quit(); }
+  const target = process.env.APPIMAGE;
+  if (!target) throw new Error(`Built ${built} in ${dist}. Install it by hand: this copy isn't an AppImage.`);
+  // copy then rename, so the running AppImage keeps its old file until it exits
+  step('Installing…');
+  await fs.promises.copyFile(path.join(dist, built), target + '.new');
+  await fs.promises.chmod(target + '.new', 0o755);
+  await fs.promises.rename(target + '.new', target);
+  app.relaunch({ execPath: target, args: [] });
+  app.quit();
+});
 
 const terms = new Map();
 let nextId = 1;

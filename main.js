@@ -28,6 +28,10 @@ ipcMain.handle('pin:pick', async e => {
   writePins([...new Set([...readPins(), r.filePaths[0]])]);
   return r.filePaths[0];
 });
+ipcMain.handle('pick-target', async e => {
+  const r = await dialog.showOpenDialog(BrowserWindow.fromWebContents(e.sender), { title: 'Pick an app or binary to reverse engineer', properties: ['openFile'] });
+  return r.canceled ? null : r.filePaths[0] || null;
+});
 ipcMain.handle('pin:remove', (e, dir) => writePins(readPins().filter(p => p !== dir)));
 
 const terms = new Map();
@@ -37,6 +41,8 @@ ipcMain.handle('pty:spawn', (e, { cwd, kind, args = [], cols = 100, rows = 30 })
   let file, argv;
   if (kind === 'shell') {
     [file, argv] = IS_WIN ? ['powershell.exe', ['-NoLogo']] : [process.env.SHELL || '/bin/bash', []];
+  } else if (kind === 'rea-setup') {
+    [file, argv] = IS_WIN ? ['cmd.exe', ['/c', 'npx', 'rea-agents', 'setup']] : ['npx', ['rea-agents', 'setup']];
   } else {
     const claude = lib.findClaude();
     if (!claude) throw new Error('Claude Code is not installed or not on PATH.');

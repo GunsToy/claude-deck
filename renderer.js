@@ -248,6 +248,11 @@ document.addEventListener('click', async e => {
     if (d.act === 'continue') return openTerm({ cwd, args: ['--continue'] });
     if (d.act === 'shell') return openTerm({ cwd, kind: 'shell' });
     if (d.act === 'open') return deck.openFolder(cwd);
+    if (d.act === 'rea') {
+      const target = await deck.pickTarget();
+      if (target) openTerm({ cwd, args: [`Use REA to reverse engineer ${target}: explain how it works and show the evidence.`], title: `REA · ${nameOf(target)}` });
+      return;
+    }
     if (d.act === 'unpin') { await deck.unpin(cwd); return load(); }
   }
   if (d.quick) {
@@ -255,6 +260,7 @@ document.addEventListener('click', async e => {
     if (d.quick === 'continue') return openTerm({ cwd, args: ['--continue'] });
     if (d.quick === 'shell') return openTerm({ cwd, kind: 'shell' });
     if (d.quick === 'folder') return addFolder();
+    if (d.quick === 'rea') return openTerm({ cwd, kind: 'rea-setup', title: 'REA setup' });
   }
 });
 

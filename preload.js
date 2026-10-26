@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('deck', {
   report: dir => ipcRenderer.invoke('report', dir),
   openFolder: dir => ipcRenderer.invoke('open-folder', dir),
   pickFolder: () => ipcRenderer.invoke('pin:pick'),
+  pickTarget: () => ipcRenderer.invoke('pick-target'),
   unpin: dir => ipcRenderer.invoke('pin:remove', dir),
   readClip: () => ipcRenderer.invoke('clip:read'),
   writeClip: t => ipcRenderer.invoke('clip:write', t),

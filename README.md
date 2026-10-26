@@ -12,7 +12,7 @@ Projects come from four places: folders you've run Claude Code in (`~/.claude/pr
 
 The bars at the bottom of the sidebar show your Claude plan usage: the 5-hour session window and the week, with when each resets. They use Claude Code's login, so sign in to Claude Code first. They refresh every 5 minutes and when you click **Refresh**.
 
-**Updates** checks GitHub for changes newer than the build you're running. If there are any, it pulls them into `~/claude-deck`, rebuilds (a progress bar shows how far along it is), replaces the installed AppImage (on Windows it opens the new installer) and restarts.
+**Updates** checks this repo's GitHub Releases for a newer version, downloads it with a progress bar, installs it and restarts. The repo is private, so it signs in with your GitHub CLI login (`gh auth login`); no token is stored in the app. Installed copies don't need the source code or any build tools.
 
 ## New and changed projects on GitHub
 
@@ -28,6 +28,24 @@ The version next to the name is `major.minor` from `package.json` plus the numbe
 npm install
 npm start
 ```
+
+## Release a new version
+
+```
+npm run release
+```
+
+Run it on the Linux PC from a clean `main`. It pushes `main`, builds the Linux AppImage here and the Windows installer in the Win11 VM on Proxmox, and publishes both to the GitHub Release `v<version>`. Every installed copy then sees the update.
+
+What it needs:
+
+- `gh` signed in, and `ssh pve` reaching the Proxmox host as root.
+- VM 111 with the QEMU guest agent running.
+- Portable Node and MinGit unpacked in the VM's `C:\build`.
+
+Override the defaults with `PVE`, `VMID`, `PVE_IP`, `PORT`, `WIN_NODE` and `WIN_GIT`.
+
+The Windows installer (`Claude-Deck-Setup-<version>.exe`) installs on any 64-bit Windows 10 or 11 PC without Node or Git. It isn't code-signed, so the first install shows SmartScreen's "Windows protected your PC": choose **More info → Run anyway**.
 
 ## Build an installer
 

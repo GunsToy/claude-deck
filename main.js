@@ -3,7 +3,8 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { pathToFileURL } = require('url');
-const { execFile, execFileSync, spawn } = require('child_process');
+const { execFile, execFileSync } = require('child_process');
+const { autoUpdater } = require('electron-updater');
 const pty = require('@lydell/node-pty');
 const lib = require('./lib');
 const version = require('./build/version');
@@ -67,8 +68,6 @@ ipcMain.handle('usage', async () => {
   } catch { return { error: 'Usage is unavailable right now.' }; }
 });
 
-// Updates rebuild from the local clone. shortcut: assumes it lives in ~/claude-deck; make it a setting if that changes
-const SOURCE = path.join(os.homedir(), 'claude-deck');
 // GIT_TERMINAL_PROMPT=0: no terminal to answer a credential prompt, so fail instead of hanging
 const sh = (cmd, args, { cwd, timeout = 0 }, onOut) => new Promise((res, rej) => {
   const p = execFile(cmd, args, { cwd, timeout, shell: IS_WIN, maxBuffer: 64 << 20, env: { ...process.env, GIT_TERMINAL_PROMPT: '0' } },
@@ -80,44 +79,33 @@ const sh = (cmd, args, { cwd, timeout = 0 }, onOut) => new Promise((res, rej) =>
     });
   if (onOut) { p.stdout.on('data', onOut); p.stderr.on('data', onOut); }
 });
-const run = (cmd, args, onOut) => sh(cmd, args, { cwd: SOURCE }, onOut);
-// electron-builder's log lines, mapped to how far through the update they come
-const BUILD_STAGES = [[/@electron\/rebuild/, 30], [/packaging/, 45], [/building\s+target=/, 65]];
-// a packaged build stamps its commit at build time (build/dist.js); a dev run is whatever is checked out
-const builtFrom = () => (app.isPackaged ? fs.readFileSync(path.join(__dirname, 'build', 'commit.txt'), 'utf8').trim() : run('git', ['rev-parse', 'HEAD']));
+// Updates come from this repo's GitHub Releases (published by `npm run release`). The repo is private,
+// so the token comes from the signed-in gh CLI at check time and is never built into the app.
+let updateInfo = null;
+async function updater() {
+  let token;
+  try { token = await sh('gh', ['auth', 'token'], { cwd: os.homedir(), timeout: 15000 }); } catch { /* not signed in */ }
+  if (!token) throw new Error('Sign in to the GitHub CLI (gh auth login) to get updates.');
+  autoUpdater.autoDownload = false;
+  autoUpdater.setFeedURL({ provider: 'github', owner: 'GunsToy', repo: 'claude-deck', private: true, token });
+  return autoUpdater;
+}
 ipcMain.handle('update:check', async () => {
-  if (!isDir(path.join(SOURCE, '.git'))) throw new Error(`No Claude Deck source folder at ${SOURCE}`);
-  await run('git', ['fetch', '--quiet']);
-  const behind = Number(await run('git', ['rev-list', '--count', `${await builtFrom()}..@{u}`]));
-  return { behind, version: behind ? version(SOURCE, '@{u}') : null };
+  if (!app.isPackaged) throw new Error('This copy runs from source: update it with git pull.');
+  const r = await (await updater()).checkForUpdates();
+  updateInfo = r?.isUpdateAvailable ? r.updateInfo : null;
+  return { available: !!updateInfo, version: updateInfo?.version };
 });
 ipcMain.handle('update:install', async e => {
-  const step = (s, pct) => e.sender.send('update:step', s, pct);
-  step('Pulling…', 3); await run('git', ['pull', '--ff-only']);
-  step('Installing packages…', 10); await run('npm', ['install']);
-  if (!app.isPackaged) { app.relaunch(); return app.quit(); }
-  step('Building…', 25);
-  let pct = 25;
-  // only the installer this update needs; the full `npm run dist` also makes a .deb / portable exe
-  await run('npm', ['run', 'dist', '--', IS_WIN ? '--win' : '--linux', IS_WIN ? 'nsis' : 'AppImage'], chunk => {
-    for (const [re, p] of BUILD_STAGES) if (p > pct && re.test(chunk)) { pct = p; step('Building…', p); }
-  });
-  const dist = path.join(SOURCE, 'dist');
-  const built = fs.readdirSync(dist).find(f => (IS_WIN ? /Setup.*\.exe$/ : /\.AppImage$/).test(f));
-  if (!built) throw new Error('The build finished but made no installer.');
-  if (IS_WIN) { await shell.openPath(path.join(dist, built)); return app.quit(); }
-  const target = process.env.APPIMAGE;
-  if (!target) throw new Error(`Built ${built} in ${dist}. Install it by hand: this copy isn't an AppImage.`);
-  // copy then rename, so the running AppImage keeps its old file until it exits
-  step('Installing…', 95);
-  await fs.promises.copyFile(path.join(dist, built), target + '.new');
-  await fs.promises.chmod(target + '.new', 0o755);
-  await fs.promises.rename(target + '.new', target);
-  // not app.relaunch: its helper runs from this AppImage's mount, which is gone once we quit.
-  // Drop the variables pointing into that mount so the new AppImage sets its own.
-  const env = Object.fromEntries(Object.entries(process.env).filter(([, v]) => !v.includes(process.env.APPDIR)));
-  spawn(target, [], { detached: true, stdio: 'ignore', cwd: os.homedir(), env }).unref();
-  app.quit();
+  if (!updateInfo) throw new Error('Check for updates first.');
+  const u = await updater();
+  const progress = p => e.sender.send('update:step', 'Downloading…', Math.round(p.percent));
+  u.on('download-progress', progress);
+  e.sender.send('update:step', 'Downloading…', 0);
+  try { await u.downloadUpdate(); } finally { u.off('download-progress', progress); }
+  e.sender.send('update:step', 'Installing…', 100);
+  // silent install, then start the new version
+  setImmediate(() => u.quitAndInstall(true, true));
 });
 
 // Your GitHub repos (via the signed-in gh CLI) that aren't on this computer yet
@@ -139,11 +127,11 @@ ipcMain.handle('github:clone', async (e, nameWithOwner) => {
   await sh('gh', ['repo', 'clone', nameWithOwner, dest], { cwd: os.homedir() });
   return dest;
 });
-// Local GitHub clones whose branch is behind its upstream. ~/claude-deck is left to the Updates button.
+// Local GitHub clones whose branch is behind its upstream
 let offeredPull = new Set();
 ipcMain.handle('github:behind', async () => {
   const ignored = new Set(readIgnored());
-  const repos = (await lib.listProjects({ pins: readPins() })).filter(p => p.remote && !ignored.has(p.path) && path.resolve(p.path) !== SOURCE);
+  const repos = (await lib.listProjects({ pins: readPins() })).filter(p => p.remote && !ignored.has(p.path));
   const behind = (await Promise.all(repos.map(async p => {
     try {
       await sh('git', ['fetch', '--quiet'], { cwd: p.path, timeout: 30000 });

@@ -61,7 +61,7 @@ del ..\\deck.bundle
 EOF
 scp -q "$work/release.cmd" "$PVE:/tmp/deck-release/release.cmd"
 pid=$(ssh "$PVE" "pvesh create /nodes/\$(hostname)/qemu/$VMID/agent/file-write --file C:/deck-release.cmd --content \"\$(cat /tmp/deck-release/release.cmd)\" >/dev/null &&
-  qm guest exec $VMID --timeout 0 -- cmd /c C:/deck-release.cmd" | python3 -c 'import json,sys; print(json.load(sys.stdin)["pid"])')
+  qm guest exec $VMID --timeout 1 -- cmd /c C:/deck-release.cmd 2>/dev/null" | python3 -c 'import json,sys; print(json.load(sys.stdin)["pid"])')
 echo "Windows build running in VM $VMID; building Linux here meanwhile"
 
 npm run dist -- --linux AppImage >"$work/linux.log" 2>&1 || { tail -20 "$work/linux.log"; exit 1; }

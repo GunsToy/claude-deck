@@ -69,12 +69,18 @@ ipcMain.handle('usage', async () => {
 
 // Updates rebuild from the local clone. shortcut: assumes it lives in ~/claude-deck; make it a setting if that changes
 const SOURCE = path.join(os.homedir(), 'claude-deck');
-const sh = (cmd, args, cwd, onOut) => new Promise((res, rej) => {
-  const p = execFile(cmd, args, { cwd, shell: IS_WIN, maxBuffer: 64 << 20 },
-    (err, out, errOut) => (err ? rej(new Error(String(errOut || err.message).trim().split('\n').pop())) : res(out.trim())));
+// GIT_TERMINAL_PROMPT=0: no terminal to answer a credential prompt, so fail instead of hanging
+const sh = (cmd, args, { cwd, timeout = 0 }, onOut) => new Promise((res, rej) => {
+  const p = execFile(cmd, args, { cwd, timeout, shell: IS_WIN, maxBuffer: 64 << 20, env: { ...process.env, GIT_TERMINAL_PROMPT: '0' } },
+    (err, out, errOut) => {
+      if (!err) return res(out.trim());
+      // git ends with a bare "Aborting"; its error:/fatal: line is the one that explains
+      const lines = String(errOut || err.message).trim().split('\n');
+      rej(new Error((lines.find(l => /^(error|fatal): /.test(l)) || lines.pop()).replace(/^(error|fatal): /, '')));
+    });
   if (onOut) { p.stdout.on('data', onOut); p.stderr.on('data', onOut); }
 });
-const run = (cmd, args, onOut) => sh(cmd, args, SOURCE, onOut);
+const run = (cmd, args, onOut) => sh(cmd, args, { cwd: SOURCE }, onOut);
 // electron-builder's log lines, mapped to how far through the update they come
 const BUILD_STAGES = [[/@electron\/rebuild/, 30], [/packaging/, 45], [/building\s+target=/, 65]];
 // a packaged build stamps its commit at build time (build/dist.js); a dev run is whatever is checked out
@@ -119,7 +125,7 @@ let offered = new Set();
 ipcMain.handle('github:new', async () => {
   let repos;
   try {
-    repos = JSON.parse(await sh('gh', ['repo', 'list', '--no-archived', '--limit', '200', '--json', 'nameWithOwner,name,description'], os.homedir()));
+    repos = JSON.parse(await sh('gh', ['repo', 'list', '--no-archived', '--limit', '200', '--json', 'nameWithOwner,name,description'], { cwd: os.homedir(), timeout: 30000 }));
   } catch { return []; } // gh missing or signed out: nothing to offer
   const ignored = new Set(readIgnored());
   const missing = lib.missingRepos(repos, await lib.listProjects({ pins: readPins() })).filter(r => !ignored.has(r.nameWithOwner));
@@ -130,11 +136,31 @@ ipcMain.handle('github:clone', async (e, nameWithOwner) => {
   if (!offered.has(nameWithOwner)) throw new Error(`${nameWithOwner} wasn't offered for cloning.`);
   const dest = path.join(os.homedir(), nameWithOwner.split('/')[1]);
   if (fs.existsSync(dest)) throw new Error(`${dest} already exists.`);
-  await sh('gh', ['repo', 'clone', nameWithOwner, dest], os.homedir());
+  await sh('gh', ['repo', 'clone', nameWithOwner, dest], { cwd: os.homedir() });
   return dest;
 });
-ipcMain.handle('github:ignore', (e, names) =>
-  fs.writeFileSync(ignoredFile(), JSON.stringify([...new Set([...readIgnored(), ...names.filter(n => offered.has(n))])], null, 2)));
+// Local GitHub clones whose branch is behind its upstream. ~/claude-deck is left to the Updates button.
+let offeredPull = new Set();
+ipcMain.handle('github:behind', async () => {
+  const ignored = new Set(readIgnored());
+  const repos = (await lib.listProjects({ pins: readPins() })).filter(p => p.remote && !ignored.has(p.path) && path.resolve(p.path) !== SOURCE);
+  const behind = (await Promise.all(repos.map(async p => {
+    try {
+      await sh('git', ['fetch', '--quiet'], { cwd: p.path, timeout: 30000 });
+      const n = Number(await sh('git', ['rev-list', '--count', 'HEAD..@{u}'], { cwd: p.path }));
+      return n ? { path: p.path, name: p.name, branch: p.branch, behind: n } : null;
+    } catch { return null; } // no upstream, offline, or no access
+  }))).filter(Boolean);
+  offeredPull = new Set(behind.map(r => r.path));
+  return behind;
+});
+ipcMain.handle('github:pull', async (e, dir) => {
+  if (!offeredPull.has(dir)) throw new Error(`${dir} wasn't offered for pulling.`);
+  await sh('git', ['pull', '--ff-only'], { cwd: dir, timeout: 120000 });
+});
+// keys are "owner/name" for new repos and folder paths for ones that are behind
+ipcMain.handle('github:ignore', (e, keys) =>
+  fs.writeFileSync(ignoredFile(), JSON.stringify([...new Set([...readIgnored(), ...keys.filter(k => offered.has(k) || offeredPull.has(k))])], null, 2)));
 
 const terms = new Map();
 let nextId = 1;

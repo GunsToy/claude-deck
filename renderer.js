@@ -349,13 +349,17 @@ $('updateBtn').onclick = async () => {
 };
 
 // ---------- new GitHub repos ----------
+const ghRow = (kind, key, name, detail) => `
+    <label class="gh-row"><input type="checkbox" value="${esc(key)}" data-kind="${kind}" checked>
+      <span class="grow"><b>${esc(name)}</b><small>${esc(detail)}</small></span>
+      <span class="gh-status" aria-live="polite"></span></label>`;
 async function checkGithub() {
-  const repos = await deck.githubNew();
-  if (!repos.length) return;
-  $('ghList').innerHTML = repos.map(r => `
-    <label class="gh-row"><input type="checkbox" value="${esc(r.nameWithOwner)}" checked>
-      <span class="grow"><b>${esc(r.name)}</b><small>${esc(r.description || r.nameWithOwner)}</small></span>
-      <span class="gh-status" aria-live="polite"></span></label>`).join('');
+  const [fresh, behind] = await Promise.all([deck.githubNew(), deck.githubBehind()]);
+  if (!fresh.length && !behind.length) return;
+  $('ghList').innerHTML =
+    (fresh.length ? `<h3>Not on this computer</h3>${fresh.map(r => ghRow('clone', r.nameWithOwner, r.name, r.description || r.nameWithOwner)).join('')}` : '') +
+    (behind.length ? `<h3>Behind GitHub</h3>${behind.map(r => ghRow('pull', r.path, r.name,
+      `${r.behind} new commit${r.behind > 1 ? 's' : ''} on ${r.branch || 'the current branch'}`)).join('')}` : '');
   $('ghDialog').showModal();
 }
 const ghBoxes = () => [...$('ghList').querySelectorAll('input')];
@@ -370,12 +374,12 @@ $('ghClone').onclick = async () => {
   for (const box of picked) {
     const status = box.closest('.gh-row').querySelector('.gh-status');
     status.className = 'gh-status'; status.textContent = 'Pulling…';
-    try { await deck.githubClone(box.value); status.textContent = 'Done'; box.disabled = true; }
+    try { await (box.dataset.kind === 'pull' ? deck.githubPull : deck.githubClone)(box.value); status.textContent = 'Done'; box.disabled = true; }
     catch (err) { failed++; status.className = 'gh-status err'; status.textContent = errText(err); }
   }
   buttons.forEach(b => (b.disabled = false));
   await load();
-  if (!failed) { $('ghDialog').close(); toast(`Pulled ${picked.length} project${picked.length > 1 ? 's' : ''} into your home folder.`); }
+  if (!failed) { $('ghDialog').close(); toast(`Pulled ${picked.length} project${picked.length > 1 ? 's' : ''} from GitHub.`); }
 };
 
 async function addFolder() {

@@ -3,10 +3,20 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { pathToFileURL } = require('url');
+const { execFileSync } = require('child_process');
 const pty = require('@lydell/node-pty');
 const lib = require('./lib');
 
 const IS_WIN = process.platform === 'win32';
+// launched from a desktop menu, PATH lacks what ~/.bashrc adds (brew, nvm), so claude's MCP servers and npx go missing.
+// Markers because interactive shells may print a banner.
+if (!IS_WIN) {
+  try {
+    const out = execFileSync(process.env.SHELL || '/bin/bash', ['-ilc', 'printf "__DECK_PATH__%s__DECK_PATH__" "$PATH"'], { encoding: 'utf8', timeout: 5000, stdio: ['ignore', 'pipe', 'ignore'] });
+    const m = out.match(/__DECK_PATH__(.*)__DECK_PATH__/);
+    if (m?.[1]) process.env.PATH = m[1];
+  } catch { /* keep the inherited PATH */ }
+}
 const CLAUDE_PROJECTS = path.join(os.homedir(), '.claude', 'projects');
 const pinsFile = () => path.join(app.getPath('userData'), 'pins.json');
 const readPins = () => { try { return JSON.parse(fs.readFileSync(pinsFile(), 'utf8')); } catch { return []; } };

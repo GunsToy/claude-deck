@@ -63,8 +63,13 @@ ipcMain.handle('usage', async () => {
 
 // Updates rebuild from the local clone. shortcut: assumes it lives in ~/claude-deck; make it a setting if that changes
 const SOURCE = path.join(os.homedir(), 'claude-deck');
-const run = (cmd, args) => new Promise((res, rej) => execFile(cmd, args, { cwd: SOURCE, shell: IS_WIN, maxBuffer: 64 << 20 },
-  (err, out, errOut) => (err ? rej(new Error(String(errOut || err.message).trim().split('\n').pop())) : res(out.trim()))));
+const run = (cmd, args, onOut) => new Promise((res, rej) => {
+  const p = execFile(cmd, args, { cwd: SOURCE, shell: IS_WIN, maxBuffer: 64 << 20 },
+    (err, out, errOut) => (err ? rej(new Error(String(errOut || err.message).trim().split('\n').pop())) : res(out.trim())));
+  if (onOut) { p.stdout.on('data', onOut); p.stderr.on('data', onOut); }
+});
+// electron-builder's log lines, mapped to how far through the update they come
+const BUILD_STAGES = [[/@electron\/rebuild/, 30], [/packaging/, 45], [/building\s+target=/, 65]];
 // a packaged build stamps its commit at build time (predist); a dev run is whatever is checked out
 const builtFrom = () => (app.isPackaged ? fs.readFileSync(path.join(__dirname, 'build', 'commit.txt'), 'utf8').trim() : run('git', ['rev-parse', 'HEAD']));
 ipcMain.handle('update:check', async () => {
@@ -73,11 +78,16 @@ ipcMain.handle('update:check', async () => {
   return Number(await run('git', ['rev-list', '--count', `${await builtFrom()}..@{u}`]));
 });
 ipcMain.handle('update:install', async e => {
-  const step = s => e.sender.send('update:step', s);
-  step('Pulling…'); await run('git', ['pull', '--ff-only']);
-  step('Installing packages…'); await run('npm', ['install']);
+  const step = (s, pct) => e.sender.send('update:step', s, pct);
+  step('Pulling…', 3); await run('git', ['pull', '--ff-only']);
+  step('Installing packages…', 10); await run('npm', ['install']);
   if (!app.isPackaged) { app.relaunch(); return app.quit(); }
-  step('Building…'); await run('npm', ['run', 'dist']);
+  step('Building…', 25);
+  let pct = 25;
+  // only the installer this update needs; the full `npm run dist` also makes a .deb / portable exe
+  await run('npm', ['run', 'dist', '--', IS_WIN ? '--win' : '--linux', IS_WIN ? 'nsis' : 'AppImage'], chunk => {
+    for (const [re, p] of BUILD_STAGES) if (p > pct && re.test(chunk)) { pct = p; step('Building…', p); }
+  });
   const dist = path.join(SOURCE, 'dist');
   const built = fs.readdirSync(dist).find(f => (IS_WIN ? /Setup.*\.exe$/ : /\.AppImage$/).test(f));
   if (!built) throw new Error('The build finished but made no installer.');
@@ -85,7 +95,7 @@ ipcMain.handle('update:install', async e => {
   const target = process.env.APPIMAGE;
   if (!target) throw new Error(`Built ${built} in ${dist}. Install it by hand: this copy isn't an AppImage.`);
   // copy then rename, so the running AppImage keeps its old file until it exits
-  step('Installing…');
+  step('Installing…', 95);
   await fs.promises.copyFile(path.join(dist, built), target + '.new');
   await fs.promises.chmod(target + '.new', 0o755);
   await fs.promises.rename(target + '.new', target);

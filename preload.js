@@ -15,7 +15,7 @@ contextBridge.exposeInMainWorld('deck', {
   usage: () => ipcRenderer.invoke('usage'),
   updateCheck: () => ipcRenderer.invoke('update:check'),
   updateInstall: () => ipcRenderer.invoke('update:install'),
-  onUpdateStep: cb => ipcRenderer.on('update:step', (_, s) => cb(s)),
+  onUpdateStep: cb => ipcRenderer.on('update:step', (_, s, pct) => cb(s, pct)),
   spawn: opts => ipcRenderer.invoke('pty:spawn', opts),
   write: (id, d) => ipcRenderer.send('pty:write', id, d),
   resize: (id, c, r) => ipcRenderer.send('pty:resize', id, c, r),

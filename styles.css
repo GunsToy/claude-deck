@@ -9,8 +9,8 @@
   --input: #18191a;
   --fg: #fcfcfc;
   --fg2: #b5b5b5;
-  --fg3: #858585;
-  --fg4: #5c5c5c;
+  --fg3: #a3a3a3;
+  --fg4: #8a8a8a;
   --b1: rgb(252 252 252 / 7%);
   --b2: rgb(252 252 252 / 12%);
   --b3: rgb(252 252 252 / 20%);
@@ -131,6 +131,9 @@ aside > .primary-btn { width: 100%; }
 .fill { height: 100%; border-radius: inherit; background: #d97757; transition: width .4s var(--ease); }
 .fill.hot { background: #f28b82; }
 .meter small { display: block; color: var(--fg3); margin-top: 4px; }
+.update-track { flex-shrink: 0; height: 4px; margin: 0 8px; }
+.update-track .fill { width: 0; transition: width .8s var(--ease); background: linear-gradient(90deg, #d97757 0 40%, #f0a487 50%, #d97757 60% 100%) 0 0 / 250% 100%; animation: sheen 1.6s linear infinite; }
+@keyframes sheen { from { background-position: 100% 0; } to { background-position: -150% 0; } }
 
 .avatar {
   width: 30px; height: 30px; border-radius: 9px; flex-shrink: 0; display: grid; place-items: center;

@@ -44,7 +44,7 @@ svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width:
 
 /* ---------- title bar ---------- */
 .titlebar {
-  height: 44px; flex-shrink: 0; display: flex; align-items: center;
+  height: 44px; flex-shrink: 0; display: flex; align-items: center; padding-top: 6px; padding-bottom: 6px;
   background: var(--chrome); border-bottom: 1px solid var(--b1);
   -webkit-app-region: drag;
   /* leave room for the native window buttons drawn by titleBarOverlay */

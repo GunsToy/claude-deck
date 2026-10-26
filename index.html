@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; frame-src file:">
+<title>Claude Deck</title>
+<link rel="stylesheet" href="node_modules/@fontsource-variable/inter/index.css">
+<link rel="stylesheet" href="node_modules/@fontsource/geist-mono/400.css">
+<link rel="stylesheet" href="node_modules/@fontsource/geist-mono/500.css">
+<link rel="stylesheet" href="node_modules/@xterm/xterm/css/xterm.css">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="titlebar">
+  <div class="brand">
+    <svg class="logo" viewBox="0 0 24 24" aria-hidden="true"><rect x="1.5" y="1.5" width="21" height="21" rx="6.5" fill="currentColor"/><path d="m7 8.5 3.5 3.5L7 15.5M12.5 15.5H17" stroke="#050505" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span>Claude Deck</span>
+  </div>
+  <nav class="tabs" id="tabs" aria-label="Open sessions"></nav>
+</div>
+
+<div class="shell">
+  <aside>
+    <button class="primary-btn" id="newBtn">
+      <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New session
+    </button>
+    <label class="search">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>
+      <input id="search" placeholder="Search projects" spellcheck="false">
+    </label>
+    <div class="section-head">
+      <span>Projects</span>
+      <button class="icon-btn" id="addFolder" title="Add a folder"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+    </div>
+    <nav class="list" id="list"></nav>
+    <div class="aside-foot">
+      <button class="ghost-btn" id="refresh"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"/></svg>Refresh</button>
+    </div>
+  </aside>
+
+  <main>
+    <section class="view" id="home">
+      <div class="glow"></div>
+      <div class="home-inner">
+        <h1>What should we build today?</h1>
+        <form class="composer" id="homeComposer">
+          <textarea rows="1" placeholder="Ask Claude anything…" spellcheck="false"></textarea>
+          <div class="composer-row">
+            <label class="chip select-chip">
+              <svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+              <select id="homeProject" aria-label="Project"></select>
+            </label>
+            <span class="kbd-hint">Enter to start · Shift+Enter for a new line</span>
+            <button class="send" aria-label="Start session"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+          </div>
+        </form>
+        <div class="quick">
+          <button class="pill-btn" data-quick="continue"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>Continue last session</button>
+          <button class="pill-btn" data-quick="shell"><svg viewBox="0 0 24 24"><path d="m5 8 4 4-4 4M12 16h7"/></svg>Open a shell</button>
+          <button class="pill-btn" data-quick="folder"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Add a folder</button>
+        </div>
+        <h2 class="label">Recent sessions</h2>
+        <div class="rows" id="recent"></div>
+        <h2 class="label">All projects</h2>
+        <div class="cards" id="cards"></div>
+      </div>
+    </section>
+
+    <section class="view" id="project" hidden>
+      <div class="project-inner">
+        <header class="project-head">
+          <div class="avatar big" id="pAvatar"></div>
+          <div class="grow">
+            <h1 id="pName"></h1>
+            <div class="mono dim" id="pPath"></div>
+          </div>
+        </header>
+        <div class="chips" id="pChips"></div>
+        <div class="actions">
+          <button class="primary-btn" data-act="new"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New Claude session</button>
+          <button class="ghost-btn" data-act="continue"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>Continue last</button>
+          <button class="ghost-btn" data-act="shell"><svg viewBox="0 0 24 24"><path d="m5 8 4 4-4 4M12 16h7"/></svg>Shell</button>
+          <button class="ghost-btn" data-act="open"><svg viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>Open folder</button>
+          <button class="ghost-btn" data-act="unpin" id="unpinBtn"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>Remove</button>
+        </div>
+        <form class="composer slim" id="projectComposer">
+          <textarea rows="1" placeholder="Ask Claude about this project…" spellcheck="false"></textarea>
+          <div class="composer-row">
+            <span class="kbd-hint">Starts a new session in this folder</span>
+            <button class="send" aria-label="Start session"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+          </div>
+        </form>
+        <div class="segmented" id="pTabs" role="tablist"></div>
+        <div id="pBody"></div>
+      </div>
+    </section>
+
+    <section class="view terms" id="terms" hidden></section>
+  </main>
+</div>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="node_modules/@xterm/xterm/lib/xterm.js"></script>
+<script src="node_modules/@xterm/addon-fit/lib/addon-fit.js"></script>
+<script src="node_modules/@xterm/addon-web-links/lib/addon-web-links.js"></script>
+<script src="node_modules/marked/lib/marked.umd.js"></script>
+<script src="renderer.js"></script>
+</body>
+</html>

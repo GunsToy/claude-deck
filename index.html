@@ -13,7 +13,7 @@
 <body>
 <div class="titlebar">
   <div class="brand">
-    <svg class="logo" viewBox="0 0 24 24" aria-hidden="true"><rect x="1.5" y="1.5" width="21" height="21" rx="6.5" fill="currentColor"/><path d="m7 8.5 3.5 3.5L7 15.5M12.5 15.5H17" stroke="#050505" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <svg class="logo" viewBox="0 0 24 24" aria-hidden="true"><rect x="1.5" y="1.5" width="21" height="21" rx="6.5" fill="#1c1c1c" stroke="#2e2e2e" stroke-width=".6"/><path d="M12 12L12 3.4M12 12L15.98 6.09M12 12L18.93 7.5M12 12L18.59 12.23M12 12L19.59 16.04M12 12L15.12 18.7M12 12L11.86 20.06M12 12L8.99 18.16M12 12L4.46 15.84M12 12L4.74 12.13M12 12L5.27 7.8M12 12L8.34 6.36" stroke="#d97757" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
     <span>Claude Deck</span>
   </div>
   <nav class="tabs" id="tabs" aria-label="Open sessions"></nav>
@@ -95,7 +95,16 @@
       </div>
     </section>
 
-    <section class="view terms" id="terms" hidden></section>
+    <section class="view terms" id="terms" hidden>
+      <form class="find" id="find" role="search" hidden>
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>
+        <input id="findInput" placeholder="Find in terminal" spellcheck="false" aria-label="Find in terminal">
+        <span class="dim mono" id="findCount" aria-live="polite"></span>
+        <button type="button" class="icon-btn" id="findPrev" title="Previous (Shift+Enter)" aria-label="Previous match"><svg viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></svg></button>
+        <button type="button" class="icon-btn" id="findNext" title="Next (Enter)" aria-label="Next match"><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
+        <button type="button" class="icon-btn" id="findClose" title="Close (Esc)" aria-label="Close find"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+      </form>
+    </section>
   </main>
 </div>
 
@@ -104,6 +113,7 @@
 <script src="node_modules/@xterm/xterm/lib/xterm.js"></script>
 <script src="node_modules/@xterm/addon-fit/lib/addon-fit.js"></script>
 <script src="node_modules/@xterm/addon-web-links/lib/addon-web-links.js"></script>
+<script src="node_modules/@xterm/addon-search/lib/addon-search.js"></script>
 <script src="node_modules/marked/lib/marked.umd.js"></script>
 <script src="renderer.js"></script>
 </body>

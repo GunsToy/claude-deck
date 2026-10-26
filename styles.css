@@ -104,7 +104,7 @@ aside > .primary-btn { width: 100%; }
 }
 .search:focus-within { border-color: var(--b3); }
 .search input { flex: 1; min-width: 0; background: none; border: 0; outline: none; color: var(--fg); font: inherit; }
-.search input::placeholder { color: var(--fg4); }
+.search input::placeholder { color: var(--fg3); }
 .section-head { display: flex; align-items: center; justify-content: space-between; padding: 6px 6px 0 8px; color: var(--fg4); font-size: 12px; font-weight: 500; }
 .list { flex: 1; overflow-y: auto; margin: 0 -4px; padding: 0 4px; }
 .item {
@@ -146,7 +146,7 @@ h1 { margin: 0; font-weight: 500; letter-spacing: -0.025em; }
   width: 100%; resize: none; background: none; border: 0; outline: none; color: var(--fg);
   font: 16px/1.5 var(--sans); max-height: 200px; padding: 4px 0 8px; user-select: text;
 }
-.composer textarea::placeholder { color: var(--fg4); }
+.composer textarea::placeholder { color: var(--fg3); }
 .composer-row { display: flex; align-items: center; gap: 10px; }
 .kbd-hint { flex: 1; color: var(--fg4); font-size: 12px; text-align: right; padding-right: 4px; }
 .send {
@@ -236,6 +236,14 @@ h1 { margin: 0; font-weight: 500; letter-spacing: -0.025em; }
 .term .xterm { height: 100%; }
 .term .xterm-viewport { background: transparent !important; }
 .term .xterm-viewport::-webkit-scrollbar-thumb { background: var(--l2); }
+.find {
+  position: absolute; top: 10px; right: 22px; z-index: 5; display: flex; align-items: center; gap: 4px;
+  background: var(--l1); border: 1px solid var(--b2); border-radius: 12px; padding: 4px 4px 4px 12px;
+  box-shadow: 0 12px 40px rgb(0 0 0 / 60%); color: var(--fg3);
+}
+.find input { width: 220px; background: none; border: 0; outline: none; color: var(--fg); font: inherit; margin-left: 4px; user-select: text; }
+.find input::placeholder { color: var(--fg3); }
+.find #findCount { font-size: 12px; min-width: 52px; text-align: right; margin-right: 4px; }
 
 /* ---------- toast ---------- */
 .toast {

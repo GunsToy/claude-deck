@@ -27,6 +27,7 @@ npm run dist        # Windows: dist/Claude Deck Setup 1.0.0.exe + portable exe
 | Ctrl+Shift+T | New session |
 | Ctrl+Shift+W | Close the current terminal tab |
 | Ctrl+Tab / Ctrl+Shift+Tab | Switch terminal tabs |
+| Ctrl+Shift+F | Find in the current terminal (Enter / Shift+Enter for next / previous, Esc to close) |
 | Ctrl+Shift+C | Copy the selection |
 | Ctrl+V | Paste |
 | Right-click | Copy the selection, or paste if nothing is selected |

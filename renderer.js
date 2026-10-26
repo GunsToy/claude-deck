@@ -41,6 +41,7 @@ async function load() {
 
 // ---------- views ----------
 function show(v) {
+  closeFind();
   view = v;
   $('home').hidden = v.type !== 'home';
   $('project').hidden = v.type !== 'project';
@@ -137,7 +138,7 @@ async function renderProject() {
 // ---------- terminals ----------
 const THEME = {
   background: '#050505', foreground: '#e8e8e8', cursor: '#fcfcfc', cursorAccent: '#050505',
-  selectionBackground: 'rgba(252,252,252,0.20)',
+  selectionBackground: 'rgba(252,252,252,0.20)', selectionInactiveBackground: 'rgba(217,119,87,0.55)', // inactive = find bar has focus, so this marks the current match
   black: '#1c1c1c', red: '#f28b82', green: '#8ee3a0', yellow: '#fdd84a', blue: '#91a6f5', magenta: '#b8a1f5', cyan: '#6fd3ea', white: '#d6d6d6',
   brightBlack: '#5c5c5c', brightRed: '#ffa69e', brightGreen: '#a9f0b8', brightYellow: '#ffe57a', brightBlue: '#adbdfa', brightMagenta: '#cdbbfa', brightCyan: '#94e2f2', brightWhite: '#fcfcfc',
 };
@@ -155,6 +156,8 @@ async function openTerm({ cwd, kind = 'claude', args = [], title }) {
   const fit = new FitAddon.FitAddon();
   term.loadAddon(fit);
   term.loadAddon(new WebLinksAddon.WebLinksAddon());
+  const search = new SearchAddon.SearchAddon();
+  term.loadAddon(search);
   term.open(el);
   fit.fit();
 
@@ -166,8 +169,11 @@ async function openTerm({ cwd, kind = 'claude', args = [], title }) {
     show(view.type === 'term' ? { type: 'home' } : view);
     return toast(String(err.message || err).replace(/^Error invoking remote method '[^']+': (Error: )?/, ''));
   }
-  const t = { term, fit, el, cwd, exited: false, title: title || (kind === 'shell' ? `Shell · ${nameOf(cwd)}` : nameOf(cwd)) };
+  const t = { term, fit, search, el, cwd, exited: false, title: title || (kind === 'shell' ? `Shell · ${nameOf(cwd)}` : nameOf(cwd)) };
   terms.set(id, t);
+  search.onDidChangeResults(({ resultIndex, resultCount }) => {
+    if (activeTerm() === t) $('findCount').textContent = resultCount ? `${resultIndex + 1}/${resultCount}` : 'No results';
+  });
 
   term.onData(d => (t.exited ? closeTerm(id) : deck.write(id, d)));
   term.onResize(({ cols, rows }) => deck.resize(id, cols, rows));
@@ -177,6 +183,7 @@ async function openTerm({ cwd, kind = 'claude', args = [], title }) {
     if (e.type !== 'keydown' || !e.ctrlKey) return true;
     const k = e.key.toLowerCase();
     if (e.shiftKey && k === 'c') { deck.writeClip(term.getSelection()); return false; }
+    if (e.shiftKey && k === 'f') { openFind(); return false; }
     if ((e.shiftKey && (k === 't' || k === 'w')) || k === 'tab') return false; // app shortcuts, not for the pty
     if (k === 'v') { deck.readClip().then(txt => txt && term.paste(txt)); return false; }
     return true;
@@ -210,6 +217,37 @@ function closeTerm(id) {
     show(last ? { type: 'term', id: last } : projectOf(t.cwd) ? { type: 'project', path: t.cwd } : { type: 'home' });
   } else renderTabs();
 }
+
+// ---------- find ----------
+// overview ruler colours must be #RRGGBB
+const FIND = { decorations: { matchBackground: '#3a3a3a', matchOverviewRuler: '#5c5c5c', activeMatchBackground: '#d97757', activeMatchColorOverviewRuler: '#d97757' } };
+const activeTerm = () => (view.type === 'term' ? terms.get(view.id) : null);
+function find(back, incremental = false) {
+  const t = activeTerm(), q = $('findInput').value;
+  if (!t) return;
+  if (!q) { t.search.clearDecorations(); $('findCount').textContent = ''; return; }
+  t.search[back ? 'findPrevious' : 'findNext'](q, { ...FIND, incremental });
+}
+function openFind() {
+  if (!activeTerm()) return;
+  $('find').hidden = false;
+  $('findInput').select(); $('findInput').focus();
+  if ($('findInput').value) find(false, true);
+}
+function closeFind() {
+  if ($('find').hidden) return;
+  $('find').hidden = true; $('findCount').textContent = '';
+  activeTerm()?.search.clearDecorations();
+}
+$('findInput').oninput = () => find(false, true);
+$('findInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); find(e.shiftKey); }
+  if (e.key === 'Escape') { const t = activeTerm(); closeFind(); t?.term.focus(); }
+});
+$('find').onsubmit = e => e.preventDefault();
+$('findPrev').onclick = () => find(true);
+$('findNext').onclick = () => find(false);
+$('findClose').onclick = () => { const t = activeTerm(); closeFind(); t?.term.focus(); };
 
 // ---------- composer ----------
 function wireComposer(form, cwdFn) {
@@ -274,6 +312,7 @@ document.addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
   if (e.shiftKey && k === 't') { e.preventDefault(); $('newBtn').click(); }
   if (e.shiftKey && k === 'w' && view.type === 'term') { e.preventDefault(); closeTerm(view.id); }
+  if (e.shiftKey && k === 'f' && view.type === 'term') { e.preventDefault(); openFind(); }
   if (e.key === 'Tab' && terms.size) {
     e.preventDefault();
     const ids = [...terms.keys()];

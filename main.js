@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { pathToFileURL } = require('url');
-const { execFile, execFileSync } = require('child_process');
+const { execFile, execFileSync, spawn } = require('child_process');
 const pty = require('@lydell/node-pty');
 const lib = require('./lib');
 
@@ -99,7 +99,10 @@ ipcMain.handle('update:install', async e => {
   await fs.promises.copyFile(path.join(dist, built), target + '.new');
   await fs.promises.chmod(target + '.new', 0o755);
   await fs.promises.rename(target + '.new', target);
-  app.relaunch({ execPath: target, args: [] });
+  // not app.relaunch: its helper runs from this AppImage's mount, which is gone once we quit.
+  // Drop the variables pointing into that mount so the new AppImage sets its own.
+  const env = Object.fromEntries(Object.entries(process.env).filter(([, v]) => !v.includes(process.env.APPDIR)));
+  spawn(target, [], { detached: true, stdio: 'ignore', cwd: os.homedir(), env }).unref();
   app.quit();
 });
 

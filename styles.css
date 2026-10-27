@@ -118,7 +118,8 @@ aside > .primary-btn { width: 100%; }
 .item small { display: block; color: var(--fg4); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .item .live { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
 .aside-foot { border-top: 1px solid var(--b1); padding-top: 10px; display: flex; gap: 4px; }
-.aside-foot .ghost-btn { flex: 1; min-width: 0; border-color: transparent; height: 34px; padding: 0 10px; }
+.aside-foot .ghost-btn { flex: 1; min-width: 0; border-color: transparent; height: 34px; padding: 0 4px; gap: 5px; font-size: 12.5px; }
+.aside-foot svg { width: 14px; height: 14px; }
 .aside-foot .ghost-btn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .aside-foot .ghost-btn:disabled { cursor: progress; color: var(--fg3); background: none; }
 

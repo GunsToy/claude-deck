@@ -6,7 +6,9 @@ const { pathToFileURL } = require('url');
 const { execFile, execFileSync } = require('child_process');
 const { autoUpdater } = require('electron-updater');
 const pty = require('@lydell/node-pty');
+const crypto = require('crypto');
 const lib = require('./lib');
+const addons = require('./addons');
 const version = require('./build/version');
 
 const IS_WIN = process.platform === 'win32';
@@ -146,6 +148,65 @@ ipcMain.handle('github:pull', async (e, dir) => {
 // keys are "owner/name" for new repos and folder paths for ones that are behind
 ipcMain.handle('github:ignore', (e, keys) =>
   fs.writeFileSync(ignoredFile(), JSON.stringify([...new Set([...readIgnored(), ...keys.filter(k => offered.has(k) || offeredPull.has(k))])], null, 2)));
+
+// Addon sync through a private <you>/claude-deck-sync repo. Only the main install, once one is set, can push.
+const syncDir = () => path.join(app.getPath('userData'), 'addon-sync');
+const installId = () => {
+  const f = path.join(app.getPath('userData'), 'install-id');
+  try { return fs.readFileSync(f, 'utf8'); } catch { const id = crypto.randomUUID(); fs.writeFileSync(f, id); return id; }
+};
+const addonOpts = () => ({ home: os.homedir(), platform: process.platform, backup: path.join(app.getPath('userData'), 'addon-backup') });
+// gh as the credential helper for this repo only, so pushing needs no `gh auth setup-git`
+const git = args => sh('git', ['-c', 'credential.helper=', '-c', 'credential.helper=!gh auth git-credential',
+  '-c', 'user.name=Claude Deck', '-c', 'user.email=claude-deck@users.noreply.github.com', ...args], { cwd: syncDir(), timeout: 120000 });
+let syncing = false;
+// Clones the sync repo (creating it on GitHub only when `create`) and checks out GitHub's latest: the local clone is only a workspace
+async function syncRepo(fn, create = false) {
+  if (syncing) throw new Error('Addon sync is already running.');
+  syncing = true;
+  try {
+    let login;
+    try { login = await sh('gh', ['api', 'user', '--jq', '.login'], { cwd: os.homedir(), timeout: 30000 }); }
+    catch { throw new Error('Sign in to GitHub first: run gh auth login in a shell.'); }
+    const repo = `${login}/claude-deck-sync`;
+    if (!isDir(path.join(syncDir(), '.git'))) {
+      fs.rmSync(syncDir(), { recursive: true, force: true });
+      try { await sh('gh', ['repo', 'view', repo, '--json', 'name'], { cwd: os.homedir(), timeout: 30000 }); }
+      catch {
+        if (!create) return await fn({ login, deck: {}, isMain: false });
+        await sh('gh', ['repo', 'create', repo, '--private', '--description', 'Claude Code addons synced by Claude Deck'], { cwd: os.homedir(), timeout: 30000 });
+      }
+      await sh('gh', ['repo', 'clone', repo, syncDir()], { cwd: os.homedir(), timeout: 120000 });
+    }
+    await git(['fetch', 'origin']);
+    if (await git(['ls-remote', '--heads', 'origin', 'main'])) await git(['checkout', '-f', '-B', 'main', 'origin/main']);
+    else await git(['symbolic-ref', 'HEAD', 'refs/heads/main']); // new, empty repo
+    await git(['clean', '-fdx']);
+    const deck = addons.readJson(path.join(syncDir(), 'deck.json'));
+    return await fn({ login, deck, isMain: deck.main?.id === installId() });
+  } finally { syncing = false; }
+}
+async function commitPush(message) {
+  await git(['add', '-A']);
+  if (!(await git(['status', '--porcelain']))) return false;
+  await git(['commit', '-m', message]);
+  await git(['push', 'origin', 'main']);
+  return true;
+}
+ipcMain.handle('addons:status', () => syncRepo(async ({ login, deck, isMain }) => ({ login, main: deck.main || null, isMain })));
+ipcMain.handle('addons:push', () => syncRepo(async ({ deck, isMain }) => {
+  if (deck.main && !isMain) throw new Error(`Only the main install (${deck.main.name}) can push. Make this the main install first.`);
+  const r = addons.exportAddons(syncDir(), addonOpts());
+  return { ...r, changed: await commitPush(`Addons from ${os.hostname()}`) };
+}, true));
+ipcMain.handle('addons:pull', () => syncRepo(async ({ deck }) => {
+  if (!fs.existsSync(path.join(syncDir(), 'settings.json'))) throw new Error('Nothing to pull yet. Push from your main install first.');
+  return { ...addons.importAddons(syncDir(), addonOpts()), from: deck.main?.name || null, backup: addonOpts().backup };
+}));
+ipcMain.handle('addons:main', () => syncRepo(async ({ deck }) => {
+  addons.writeJson(path.join(syncDir(), 'deck.json'), { ...deck, main: { id: installId(), name: os.hostname(), platform: process.platform } });
+  await commitPush(`Make ${os.hostname()} the main install`);
+}, true));
 
 const terms = new Map();
 let nextId = 1;

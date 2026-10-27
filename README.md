@@ -27,6 +27,15 @@ The bars at the bottom of the sidebar show your Claude plan usage: the 5-hour se
 
 When Claude Deck opens, it asks the GitHub CLI (`gh`, signed in with `gh auth login`) for your repositories and fetches every local GitHub repo. If a repository isn't on this computer yet, it offers to clone it into your home folder; if a local copy is behind GitHub, it offers to pull it (fast-forward only, so local changes are never overwritten). **Don't ask again** stops it offering those ones. Without `gh` it skips the new-repository check.
 
+## Addons
+
+**Addons** in the sidebar syncs your Claude Code plugins and marketplaces, skills (`~/.claude/skills`), MCP servers, hooks and global `CLAUDE.md` between computers. It keeps them in a private `claude-deck-sync` repo on the GitHub account `gh` is signed in to, created on your first push.
+
+- **Push** copies this computer's addons to GitHub. **Pull** copies them from GitHub to this computer: plugins and MCP servers are merged in, while `CLAUDE.md`, hooks and skills with the same name are replaced. The old files are backed up first.
+- **Make this the main install** marks your best-set-up computer as the hub. After that, only it can push, so a half-set-up computer can't overwrite the good config.
+- MCP secrets (env vars, headers and flags named like key, token, secret or password) are never uploaded. A pull keeps each computer's own values; a server that's new to a computer gets `<set on this computer>` placeholders to fill in.
+- Hooks and MCP servers run OS-specific commands, so they only sync between installs on the same OS. Paths under your home folder are rewritten for each computer.
+
 ## Versions
 
 The version next to the name is `major.minor` from `package.json` plus the number of commits, so every push to GitHub builds as a new version. Change `major.minor` in `package.json` by hand when you want a bigger jump.

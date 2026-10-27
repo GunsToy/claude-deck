@@ -41,6 +41,7 @@
     </div>
     <div class="aside-foot">
       <button class="ghost-btn" id="refresh"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"/></svg>Refresh</button>
+      <button class="ghost-btn" id="addonBtn" title="Sync plugins, skills, MCP servers and hooks between installs"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5.3M20 4v4h-4M20 12a8 8 0 0 1-14 5.3M4 20v-4h4"/></svg><span>Addons</span></button>
       <button class="ghost-btn" id="updateBtn" title="Check for updates"><svg viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><span>Updates</span></button>
     </div>
   </aside>
@@ -134,6 +135,19 @@
     <span class="grow"></span>
     <button class="ghost-btn" id="ghLater">Not now</button>
     <button class="primary-btn" id="ghClone">Pull selected</button>
+  </div>
+</dialog>
+
+<dialog class="modal" id="addonDialog" aria-labelledby="addonTitle">
+  <h2 id="addonTitle">Sync addons</h2>
+  <p class="dim">Plugins, skills, MCP servers, hooks and your global CLAUDE.md, kept in a private <code>claude-deck-sync</code> repo on your GitHub. MCP secrets stay on each computer.</p>
+  <p id="addonStatus" aria-live="polite"></p>
+  <div class="modal-actions">
+    <button class="ghost-btn" id="addonMain" title="Only the main install can push, so a half-set-up computer can't overwrite your good config">Make this the main install</button>
+    <span class="grow"></span>
+    <button class="ghost-btn" id="addonClose">Close</button>
+    <button class="ghost-btn" id="addonPull" title="GitHub → this computer">Pull</button>
+    <button class="primary-btn" id="addonPush" title="This computer → GitHub">Push</button>
   </div>
 </dialog>
 

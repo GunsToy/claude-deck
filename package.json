@@ -38,6 +38,7 @@
       "main.js",
       "preload.js",
       "lib.js",
+      "addons.js",
       "renderer.js",
       "index.html",
       "styles.css",

@@ -4,6 +4,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const lib = require('./lib');
+const addons = require('./addons');
 
 (async () => {
   const lines = [
@@ -42,5 +43,44 @@ const lib = require('./lib');
   assert.deepStrictEqual((await lib.sessions(claudeDir)).map(s => s.title), ['hello']);
 
   fs.rmSync(home, { recursive: true, force: true });
+
+  // addon sync: computer A pushes to a repo folder, computer B (different home, own secret) pulls
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'deck-addons-'));
+  const [a, b, repo] = ['a', 'b', 'repo'].map(n => { fs.mkdirSync(path.join(tmp, n, '.claude', 'skills'), { recursive: true }); return path.join(tmp, n); });
+  const hook = home => ({ Stop: [{ hooks: [{ type: 'command', command: `"${path.join(home, '.claude', 'x').replace(/\\/g, '\\\\')}" hook` }] }] });
+  const server = (home, key) => ({ command: path.join(home, 'bin', 'srv'), args: ['--api-key', key, '--port=1'], env: { API_TOKEN: key, MODE: 'fast' } });
+  addons.writeJson(path.join(a, '.claude', 'settings.json'), { enabledPlugins: { 'p@m': true }, hooks: hook(a), theme: 'dark' });
+  addons.writeJson(path.join(a, '.claude.json'), { userID: 'a', mcpServers: { srv: server(a, 'SECRET-A') } });
+  fs.writeFileSync(path.join(a, '.claude', 'CLAUDE.md'), '# rules');
+  fs.mkdirSync(path.join(a, '.claude', 'skills', 'tool', 'node_modules'), { recursive: true });
+  fs.writeFileSync(path.join(a, '.claude', 'skills', 'tool', 'SKILL.md'), 'skill');
+  fs.mkdirSync(path.join(a, '.claude', 'skills', 'synced'));
+  addons.writeJson(path.join(b, '.claude', 'settings.json'), { enabledPlugins: { 'mine@m': true }, theme: 'light' });
+  addons.writeJson(path.join(b, '.claude.json'), { userID: 'b', mcpServers: { srv: server(b, 'SECRET-B'), local: { command: 'x' } } });
+
+  assert.deepStrictEqual(addons.exportAddons(repo, { home: a, platform: 'test' }), { skills: 1 }, 'synced/ is Desktop\'s');
+  const pushed = fs.readFileSync(path.join(repo, 'test.json'), 'utf8');
+  assert.ok(!pushed.includes('SECRET-A') && !pushed.includes(a.replace(/\\/g, '\\\\')), 'no secrets or home paths in the repo');
+  assert.ok(!fs.existsSync(path.join(repo, 'skills', 'tool', 'node_modules')));
+
+  const r = addons.importAddons(repo, { home: b, platform: 'test', backup: path.join(tmp, 'backup') });
+  assert.deepStrictEqual(r, { skills: 1, plugins: 1, sameOs: true, needSecrets: [] });
+  const sb = addons.readJson(path.join(b, '.claude', 'settings.json')), cb = addons.readJson(path.join(b, '.claude.json'));
+  assert.deepStrictEqual(sb.enabledPlugins, { 'mine@m': true, 'p@m': true }, 'plugins merge');
+  assert.strictEqual(sb.theme, 'light', 'unsynced settings untouched');
+  assert.deepStrictEqual(sb.hooks, hook(b), 'hook paths point at this home');
+  assert.deepStrictEqual(cb.mcpServers, { srv: server(b, 'SECRET-B'), local: { command: 'x' } }, 'own secret and local-only servers kept');
+  assert.strictEqual(cb.userID, 'b');
+  assert.strictEqual(fs.readFileSync(path.join(b, '.claude', 'CLAUDE.md'), 'utf8'), '# rules');
+  assert.strictEqual(addons.readJson(path.join(tmp, 'backup', 'settings.json')).theme, 'light', 'backed up first');
+
+  // a computer that never had the server gets placeholders, and a different OS gets no hooks or MCP servers
+  fs.rmSync(path.join(b, '.claude.json'));
+  assert.deepStrictEqual(addons.importAddons(repo, { home: b, platform: 'test', backup: path.join(tmp, 'backup') }).needSecrets, ['srv']);
+  assert.strictEqual(addons.readJson(path.join(b, '.claude.json')).mcpServers.srv.env.API_TOKEN, addons.PLACEHOLDER);
+  assert.strictEqual(addons.importAddons(repo, { home: b, platform: 'other', backup: path.join(tmp, 'backup') }).sameOs, false);
+  fs.writeFileSync(path.join(b, '.claude.json'), '{broken');
+  assert.throws(() => addons.importAddons(repo, { home: b, platform: 'test', backup: path.join(tmp, 'backup') }), /Can't read/, 'never overwrite a broken file');
+  fs.rmSync(tmp, { recursive: true, force: true });
   console.log('ok');
 })().catch(e => { console.error(e); process.exit(1); });

@@ -425,6 +425,56 @@ $('ghClone').onclick = async () => {
   if (!failed) { $('ghDialog').close(); toast(`Pulled ${picked.length} project${picked.length > 1 ? 's' : ''} from GitHub.`); }
 };
 
+// ---------- addon sync ----------
+let addonState = null;
+const addonButtons = () => $('addonDialog').querySelectorAll('button:not(#addonClose)');
+// fn returns the result line, shown under the status (a toast is gone before a secrets warning can be read)
+async function addonRun(label, fn) {
+  addonButtons().forEach(b => (b.disabled = true));
+  $('addonStatus').textContent = label;
+  let msg;
+  try { msg = await fn(); } catch (err) { msg = errText(err); }
+  await addonRefresh();
+  if (msg) $('addonStatus').insertAdjacentHTML('beforeend', `<br><br>${esc(msg)}`);
+}
+async function addonRefresh() {
+  addonButtons().forEach(b => (b.disabled = true));
+  try { addonState = await deck.addonStatus(); }
+  catch (err) { addonState = null; $('addonStatus').textContent = errText(err); return; }
+  const { login, main, isMain } = addonState;
+  $('addonStatus').innerHTML = `GitHub account <b>${esc(login)}</b>. ${isMain ? 'This is the <b>main install</b>: push from here, pull everywhere else.'
+    : main ? `The main install is <b>${esc(main.name)}</b>. Only it can push; this computer can pull.`
+    : 'No main install yet: any computer can push. Make your best-set-up computer the main install.'}`;
+  addonButtons().forEach(b => (b.disabled = false));
+  $('addonMain').hidden = isMain;
+  $('addonPush').disabled = !!main && !isMain;
+}
+$('addonBtn').onclick = () => { $('addonDialog').showModal(); $('addonStatus').textContent = 'Checking GitHub…'; addonRefresh(); };
+$('addonClose').onclick = () => $('addonDialog').close();
+$('addonMain').onclick = () => {
+  const other = addonState?.main;
+  if (other && !confirm(`${other.name} is the main install now. Make this computer the main install instead?`)) return;
+  addonRun('Making this the main install…', () => deck.addonMain());
+};
+$('addonPush').onclick = () => {
+  if (!confirm('Replace the addons on GitHub with this computer\'s?')) return;
+  addonRun('Pushing…', async () => {
+    const r = await deck.addonPush();
+    return r.changed ? `Pushed plugins, ${r.skills} skills, MCP servers and hooks.` : 'GitHub already has these addons.';
+  });
+};
+$('addonPull').onclick = () => {
+  if (!confirm('Replace this computer\'s CLAUDE.md, hooks and same-named skills with the ones on GitHub? Plugins and MCP servers are merged in.')) return;
+  addonRun('Pulling…', async () => {
+    const r = await deck.addonPull();
+    return [`Pulled ${r.plugins} plugins and ${r.skills} skills${r.from ? ` from ${r.from}` : ''}. Restart Claude sessions to load them.`,
+      !r.sameOs && 'Hooks and MCP servers were left alone: they were pushed from a different OS.',
+      r.needSecrets.length && `Add the secrets for ${r.needSecrets.join(', ')} in ~/.claude.json.`,
+      `The old files are backed up in ${r.backup}.`,
+    ].filter(Boolean).join(' ');
+  });
+};
+
 async function addFolder() {
   const dir = await deck.pickFolder();
   if (!dir) return;

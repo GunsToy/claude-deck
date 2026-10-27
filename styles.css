@@ -122,6 +122,18 @@ aside > .primary-btn { width: 100%; }
 .aside-foot .ghost-btn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .aside-foot .ghost-btn:disabled { cursor: progress; color: var(--fg3); background: none; }
 
+/* ---------- preview ---------- */
+.preview-btn { margin-left: auto; -webkit-app-region: no-drag; position: relative; }
+.preview-btn[aria-pressed="true"] { background: var(--l2); color: var(--fg); }
+.preview-btn.fresh::after { content: ""; position: absolute; top: 3px; right: 3px; width: 6px; height: 6px; border-radius: 50%; background: #d97757; }
+.preview { width: clamp(320px, 38vw, 720px); flex-shrink: 0; display: flex; flex-direction: column; background: var(--chrome); border-left: 1px solid var(--b1); }
+.preview-head { display: flex; align-items: center; gap: 6px; padding: 10px; border-bottom: 1px solid var(--b1); }
+.preview-head select { flex: 1; min-width: 0; height: 32px; padding: 0 10px; background: var(--l1); color: var(--fg); border: 1px solid var(--b1); border-radius: 10px; font: 13px var(--sans); }
+.preview-body { flex: 1; min-height: 0; overflow: auto; }
+.preview-body iframe { display: block; width: 100%; height: 100%; border: 0; background: #fff; }
+.preview-body img { display: block; max-width: 100%; margin: 16px auto; }
+.preview-body .empty { padding: 20px; }
+
 /* ---------- usage ---------- */
 .usage { display: grid; gap: 10px; padding: 10px 8px 2px; border-top: 1px solid var(--b1); font-size: 12px; }
 .usage:empty { display: none; }

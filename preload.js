@@ -19,6 +19,8 @@ contextBridge.exposeInMainWorld('deck', {
   githubPull: dir => ipcRenderer.invoke('github:pull', dir),
   githubIgnore: keys => ipcRenderer.invoke('github:ignore', keys),
   usage: () => ipcRenderer.invoke('usage'),
+  previewRead: file => ipcRenderer.invoke('preview:read', file),
+  onPreviewFile: cb => ipcRenderer.on('preview:file', (_, file, cwd) => cb(file, cwd)),
   updateCheck: () => ipcRenderer.invoke('update:check'),
   updateInstall: () => ipcRenderer.invoke('update:install'),
   onUpdateStep: cb => ipcRenderer.on('update:step', (_, s, pct) => cb(s, pct)),

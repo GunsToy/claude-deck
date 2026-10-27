@@ -185,6 +185,7 @@ async function openTerm({ cwd, kind = 'claude', args = [], title }) {
     const k = e.key.toLowerCase();
     if (e.shiftKey && k === 'c') { deck.writeClip(term.getSelection()); return false; }
     if (e.shiftKey && k === 'f') { openFind(); return false; }
+    if (e.shiftKey && k === 'p') { togglePreview(); return false; }
     if ((e.shiftKey && (k === 't' || k === 'w')) || k === 'tab') return false; // app shortcuts, not for the pty
     if (k === 'v') { deck.readClip().then(txt => txt && term.paste(txt)); return false; }
     return true;
@@ -312,17 +313,59 @@ const resetsIn = iso => {
 };
 const meter = (label, w) => {
   if (!w) return '';
-  const pct = Math.round(w.utilization);
+  // a cached reading from before the window reset is stale; the window starts again at 0
+  const pct = new Date(w.resets_at) < Date.now() ? 0 : Math.round(w.utilization);
   return `<div class="meter" role="meter" aria-label="${label}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}">
     <div class="meter-top"><span>${label}</span><b>${pct}%</b></div>
     <div class="track"><div class="fill ${pct >= 90 ? 'hot' : ''}" style="width:${Math.min(100, pct)}%"></div></div>
     <small>Resets ${resetsIn(w.resets_at)}</small></div>`;
 };
+// the last good reading survives restarts, so an expired login or offline start still shows numbers
+const cachedUsage = () => { try { return JSON.parse(localStorage.usage); } catch { return null; } };
+const renderUsage = u => ($('usage').innerHTML = meter('Session (5h)', u.session) + meter('Week', u.week) +
+  (u.error ? `<small class="dim">${esc(u.error)}${u.at ? ` Showing figures from ${ago(u.at)}.` : ''}</small>` : ''));
 async function loadUsage() {
   const u = await deck.usage();
-  $('usage').innerHTML = u.error ? `<small class="dim">${esc(u.error)}</small>` : meter('Session (5h)', u.session) + meter('Week', u.week);
+  if (!u.error) try { localStorage.usage = JSON.stringify({ ...u, at: Date.now() }); } catch { /* storage unavailable */ }
+  renderUsage(u.error ? { ...cachedUsage(), error: u.error } : u);
 }
 setInterval(loadUsage, 5 * 60000);
+
+// ---------- preview ----------
+let previewFiles = []; // newest first: { file, cwd }
+let previewFile = null;
+async function renderPreview() {
+  if ($('preview').hidden) return;
+  const pick = $('previewPick');
+  pick.innerHTML = previewFiles.map(f => `<option value="${esc(f.file)}">${esc(f.file.slice(f.cwd.length + 1))} · ${esc(nameOf(f.cwd))}</option>`).join('');
+  pick.hidden = !previewFiles.length;
+  const body = $('previewBody');
+  if (!previewFile) return (body.innerHTML = '<div class="empty">HTML pages and images your sessions create show up here.</div>');
+  pick.value = previewFile;
+  const url = await deck.previewRead(previewFile);
+  const src = esc(`${url}?t=${Date.now()}`); // same URL after an edit would show the cached copy
+  if (!url) body.innerHTML = '<div class="empty">This file is gone.</div>';
+  else if (/\.html?$/i.test(previewFile)) body.innerHTML = `<iframe sandbox="allow-scripts" src="${src}" title="Preview"></iframe>`;
+  else body.innerHTML = `<img src="${src}" alt="">`;
+}
+function togglePreview(open = $('preview').hidden) {
+  $('preview').hidden = !open;
+  $('previewBtn').setAttribute('aria-pressed', open);
+  if (open) $('previewBtn').classList.remove('fresh');
+  try { localStorage.preview = open ? '1' : ''; } catch { /* storage unavailable */ }
+  renderPreview();
+}
+deck.onPreviewFile((file, cwd) => {
+  previewFiles = [{ file, cwd }, ...previewFiles.filter(f => f.file !== file)].slice(0, 30);
+  previewFile = file;
+  if ($('preview').hidden) $('previewBtn').classList.add('fresh');
+  // one save fires several watch events
+  clearTimeout(renderPreview.timer); renderPreview.timer = setTimeout(renderPreview, 250);
+});
+$('previewPick').onchange = e => { previewFile = e.target.value; renderPreview(); };
+$('previewBtn').onclick = () => togglePreview();
+$('previewClose').onclick = () => togglePreview(false);
+try { togglePreview(localStorage.preview === '1'); } catch { togglePreview(false); }
 
 // ---------- updates ----------
 const updateLabel = s => ($('updateBtn').querySelector('span').textContent = s);
@@ -399,6 +442,7 @@ document.addEventListener('keydown', e => {
   if (e.shiftKey && k === 't') { e.preventDefault(); $('newBtn').click(); }
   if (e.shiftKey && k === 'w' && view.type === 'term') { e.preventDefault(); closeTerm(view.id); }
   if (e.shiftKey && k === 'f' && view.type === 'term') { e.preventDefault(); openFind(); }
+  if (e.shiftKey && k === 'p' && !e.target.closest('.xterm')) { e.preventDefault(); togglePreview(); }
   if (e.key === 'Tab' && terms.size) {
     e.preventDefault();
     const ids = [...terms.keys()];
@@ -408,5 +452,6 @@ document.addEventListener('keydown', e => {
 });
 
 load().then(() => { show({ type: 'home' }); checkGithub(); });
+if (cachedUsage()) renderUsage(cachedUsage());
 loadUsage();
 deck.version().then(v => ($('version').textContent = v));

@@ -149,6 +149,35 @@ ipcMain.handle('github:ignore', (e, keys) =>
 
 const terms = new Map();
 let nextId = 1;
+
+// HTML pages and images a session creates or changes, for the preview pane. Dot folders and dependency dirs are noise.
+const NOISE = /(^|[\\/])(\.[^\\/]*|node_modules|__pycache__|venv|AppData)([\\/]|$)/;
+const PREVIEWABLE = /\.(html?|png|jpe?g|gif|webp|svg)$/i;
+const watchers = new Map();
+const previewable = new Set();
+function watchCwd(id, cwd, wc) {
+  try {
+    // shortcut: recursive fs.watch walks the whole tree on Linux; fine for project folders, slow for a session started in ~
+    const w = fs.watch(cwd, { recursive: true }, (ev, name) => {
+      if (!name || !PREVIEWABLE.test(name) || NOISE.test(name)) return;
+      const file = path.join(cwd, name);
+      fs.stat(file, (err, st) => {
+        if (err || !st.isFile() || wc.isDestroyed()) return;
+        previewable.add(file);
+        wc.send('preview:file', file, cwd);
+      });
+    });
+    w.on('error', () => unwatch(id));
+    watchers.set(id, w);
+  } catch { /* no preview for this folder */ }
+}
+const unwatch = id => { watchers.get(id)?.close(); watchers.delete(id); };
+// only paths a session watcher reported, so the page can't read arbitrary files
+ipcMain.handle('preview:read', async (e, file) => {
+  if (!previewable.has(file)) return null;
+  const st = await fs.promises.stat(file).catch(() => null);
+  return st?.isFile() ? pathToFileURL(file).href : null;
+});
 ipcMain.handle('pty:spawn', (e, { cwd, kind, args = [], cols = 100, rows = 30 }) => {
   if (!isDir(cwd)) throw new Error(`Folder not found: ${cwd}`);
   let file, argv;
@@ -168,13 +197,14 @@ ipcMain.handle('pty:spawn', (e, { cwd, kind, args = [], cols = 100, rows = 30 })
   const id = nextId++;
   const wc = e.sender;
   terms.set(id, p);
+  if (kind !== 'rea-setup') watchCwd(id, cwd, wc);
   p.onData(d => { if (!wc.isDestroyed()) wc.send('pty:data', id, d); });
-  p.onExit(({ exitCode }) => { terms.delete(id); if (!wc.isDestroyed()) wc.send('pty:exit', id, exitCode); });
+  p.onExit(({ exitCode }) => { terms.delete(id); unwatch(id); if (!wc.isDestroyed()) wc.send('pty:exit', id, exitCode); });
   return id;
 });
 ipcMain.on('pty:write', (e, id, d) => terms.get(id)?.write(d));
 ipcMain.on('pty:resize', (e, id, c, r) => { try { terms.get(id)?.resize(c, r); } catch { /* pty already gone */ } });
-ipcMain.on('pty:kill', (e, id) => { terms.get(id)?.kill(); terms.delete(id); });
+ipcMain.on('pty:kill', (e, id) => { terms.get(id)?.kill(); terms.delete(id); unwatch(id); });
 
 function createWindow() {
   const win = new BrowserWindow({

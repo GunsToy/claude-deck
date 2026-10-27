@@ -232,6 +232,8 @@ h1 { margin: 0; font-weight: 500; letter-spacing: -0.025em; }
 
 /* ---------- project ---------- */
 .project-inner { max-width: 980px; margin: 0 auto; padding: 44px 32px 64px; }
+/* the graph uses the whole window width; reading tabs keep the narrow column */
+.project-inner:has(.graph-frame) { max-width: none; }
 .project-head { display: flex; align-items: center; gap: 16px; margin-bottom: 14px; }
 .project-head h1 { font-size: 26px; }
 #pPath { font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; user-select: text; }

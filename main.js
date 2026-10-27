@@ -233,11 +233,28 @@ function watchCwd(id, cwd, wc) {
   } catch { /* no preview for this folder */ }
 }
 const unwatch = id => { watchers.get(id)?.close(); watchers.delete(id); };
+// Renders an HTML page the way a browser would (its CSS, fonts, scripts) in a hidden window and returns a full-page screenshot
+async function snapshot(file) {
+  const w = new BrowserWindow({ show: false, width: 1280, height: 800, webPreferences: { offscreen: true, sandbox: true, contextIsolation: true } });
+  w.webContents.on('will-navigate', e => e.preventDefault());
+  w.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  const settle = () => new Promise(r => setTimeout(r, 600));
+  try {
+    await w.loadFile(file).catch(() => { /* a failed subresource still leaves a page to show */ });
+    await settle(); // web fonts and script-built styles
+    const h = await w.webContents.executeJavaScript('Math.max(document.documentElement.scrollHeight, document.body?.scrollHeight || 0)').catch(() => 800);
+    // shortcut: pages taller than 8000px are cut off, past the GPU texture limit capturePage can handle
+    w.setContentSize(1280, Math.min(Math.max(h, 800), 8000));
+    await settle();
+    return (await w.webContents.capturePage()).toDataURL();
+  } finally { w.destroy(); }
+}
 // only paths a session watcher reported, so the page can't read arbitrary files
 ipcMain.handle('preview:read', async (e, file) => {
   if (!previewable.has(file)) return null;
   const st = await fs.promises.stat(file).catch(() => null);
-  return st?.isFile() ? pathToFileURL(file).href : null;
+  if (!st?.isFile()) return null;
+  return /\.html?$/i.test(file) ? snapshot(file) : pathToFileURL(file).href;
 });
 ipcMain.handle('pty:spawn', (e, { cwd, kind, args = [], cols = 100, rows = 30 }) => {
   if (!isDir(cwd)) throw new Error(`Folder not found: ${cwd}`);

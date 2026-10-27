@@ -342,10 +342,9 @@ async function renderPreview() {
   const body = $('previewBody');
   if (!previewFile) return (body.innerHTML = '<div class="empty">HTML pages and images your sessions create show up here.</div>');
   pick.value = previewFile;
-  const url = await deck.previewRead(previewFile);
-  const src = esc(`${url}?t=${Date.now()}`); // same URL after an edit would show the cached copy
+  const url = await deck.previewRead(previewFile); // HTML pages come back as a screenshot data URL
+  const src = esc(url?.startsWith('data:') ? url : `${url}?t=${Date.now()}`); // same URL after an edit would show the cached copy
   if (!url) body.innerHTML = '<div class="empty">This file is gone.</div>';
-  else if (/\.html?$/i.test(previewFile)) body.innerHTML = `<iframe sandbox="allow-scripts" src="${src}" title="Preview"></iframe>`;
   else body.innerHTML = `<img src="${src}" alt="">`;
 }
 function togglePreview(open = $('preview').hidden) {

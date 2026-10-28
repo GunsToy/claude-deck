@@ -74,7 +74,7 @@ The Windows installer (`Inarch-Setup-<version>.exe`) installs on any 64-bit Wind
 Build on the operating system you're targeting, because the terminal library includes a native module for each platform.
 
 ```
-npm run dist        # Windows: dist/Inarch Setup 1.0.0.exe + portable exe
+npm run dist        # Windows: dist/Inarch-Setup-<version>.exe + portable exe
                     # Linux:   dist/*.AppImage + dist/*.deb
 ```
 

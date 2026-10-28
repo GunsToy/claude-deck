@@ -1,6 +1,6 @@
 {
   "name": "claude-deck",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Desktop workbench for Claude Code: projects, sessions, terminals and graphify graphs",
   "main": "main.js",
   "scripts": {
@@ -9,7 +9,7 @@
     "dist": "node build/dist.js",
     "release": "bash build/release.sh"
   },
-  "author": "Claude Deck",
+  "author": "Inarch",
   "license": "MIT",
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",
@@ -26,10 +26,10 @@
     "electron": "^45.0.0",
     "electron-builder": "^25.1.8"
   },
-  "productName": "Claude Deck",
+  "productName": "Inarch",
   "build": {
     "appId": "local.claude-deck",
-    "productName": "Claude Deck",
+    "productName": "Inarch",
     "directories": {
       "output": "dist",
       "buildResources": "build"
@@ -59,7 +59,7 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "artifactName": "Claude-Deck-Setup-${version}.${ext}"
+      "artifactName": "Inarch-Setup-${version}.${ext}"
     },
     "linux": {
       "target": [
@@ -68,7 +68,7 @@
       ],
       "category": "Development",
       "icon": "build/icon.png",
-      "maintainer": "Claude Deck"
+      "maintainer": "Inarch"
     },
     "publish": [
       {
@@ -78,7 +78,7 @@
       }
     ],
     "appImage": {
-      "artifactName": "Claude-Deck-${version}.${ext}"
+      "artifactName": "Inarch-${version}.${ext}"
     }
   }
 }

@@ -381,9 +381,9 @@ $('updateBtn').onclick = async () => {
   btn.disabled = true; updateLabel('Checking…');
   try {
     const { available, version } = await deck.updateCheck();
-    if (!available) return toast('Claude Deck is up to date.');
+    if (!available) return toast('Inarch is up to date.');
     const open = [...terms.values()].filter(t => !t.exited).length;
-    if (!confirm(`Version ${version} is available. Update and restart Claude Deck?${open ? `\n\nThis closes ${open} open terminal tab${open > 1 ? 's' : ''}.` : ''}`)) return;
+    if (!confirm(`Version ${version} is available. Update and restart Inarch?${open ? `\n\nThis closes ${open} open terminal tab${open > 1 ? 's' : ''}.` : ''}`)) return;
     await deck.updateInstall();
   } catch (err) {
     toast(errText(err));

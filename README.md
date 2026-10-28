@@ -1,4 +1,6 @@
-# Claude Deck
+# Inarch
+
+(Formerly Claude Deck.)
 
 A desktop app for Claude Code that runs on Windows and Linux. It lists every project on your machine and lets you start or resume Claude sessions in real terminal tabs. If a project has a graphify graph and report, you can open them inside the app too.
 
@@ -8,8 +10,8 @@ Projects come from four places: folders you've run Claude Code in (`~/.claude/pr
 
 Get the latest installer from [Releases](https://github.com/GunsToy/claude-deck/releases/latest):
 
-- **Windows:** `Claude-Deck-Setup-<version>.exe`. It isn't code-signed, so Windows SmartScreen asks first: choose **More info → Run anyway**.
-- **Linux:** `Claude-Deck-<version>.AppImage`. Make it executable (`chmod +x`) and run it.
+- **Windows:** `Inarch-Setup-<version>.exe`. It isn't code-signed, so Windows SmartScreen asks first: choose **More info → Run anyway**.
+- **Linux:** `Inarch-<version>.AppImage`. Make it executable (`chmod +x`) and run it.
 
 You'll need [Claude Code](https://claude.com/claude-code) installed to start sessions.
 
@@ -25,7 +27,7 @@ The bars at the bottom of the sidebar show your Claude plan usage: the 5-hour se
 
 ## New and changed projects on GitHub
 
-When Claude Deck opens, it asks the GitHub CLI (`gh`, signed in with `gh auth login`) for your repositories and fetches every local GitHub repo. If a repository isn't on this computer yet, it offers to clone it into your home folder; if a local copy is behind GitHub, it offers to pull it (fast-forward only, so local changes are never overwritten). **Don't ask again** stops it offering those ones. Without `gh` it skips the new-repository check.
+When Inarch opens, it asks the GitHub CLI (`gh`, signed in with `gh auth login`) for your repositories and fetches every local GitHub repo. If a repository isn't on this computer yet, it offers to clone it into your home folder; if a local copy is behind GitHub, it offers to pull it (fast-forward only, so local changes are never overwritten). **Don't ask again** stops it offering those ones. Without `gh` it skips the new-repository check.
 
 ## Addons
 
@@ -65,14 +67,14 @@ What it needs:
 
 Override the defaults with `PVE`, `VMID`, `PVE_IP`, `PORT`, `WIN_NODE` and `WIN_GIT`.
 
-The Windows installer (`Claude-Deck-Setup-<version>.exe`) installs on any 64-bit Windows 10 or 11 PC without Node or Git. It isn't code-signed, so the first install shows SmartScreen's "Windows protected your PC": choose **More info → Run anyway**.
+The Windows installer (`Inarch-Setup-<version>.exe`) installs on any 64-bit Windows 10 or 11 PC without Node or Git. It isn't code-signed, so the first install shows SmartScreen's "Windows protected your PC": choose **More info → Run anyway**.
 
 ## Build an installer
 
 Build on the operating system you're targeting, because the terminal library includes a native module for each platform.
 
 ```
-npm run dist        # Windows: dist/Claude Deck Setup 1.0.0.exe + portable exe
+npm run dist        # Windows: dist/Inarch Setup 1.0.0.exe + portable exe
                     # Linux:   dist/*.AppImage + dist/*.deb
 ```
 

@@ -56,7 +56,7 @@ git fetch -q ..\\deck.bundle main && git reset -q --hard FETCH_HEAD || exit /b 4
 call npm install --no-audit --no-fund || exit /b 5
 call npm test || exit /b 6
 call npm run dist -- --win nsis || exit /b 7
-for %%f in (dist\\Claude-Deck-Setup-*.exe dist\\Claude-Deck-Setup-*.exe.blockmap dist\\latest.yml) do curl.exe -sSf -T "%%f" $url/%%~nxf || exit /b 8
+for %%f in (dist\\Inarch-Setup-*.exe dist\\Inarch-Setup-*.exe.blockmap dist\\latest.yml) do curl.exe -sSf -T "%%f" $url/%%~nxf || exit /b 8
 del ..\\deck.bundle
 EOF
 scp -q "$work/release.cmd" "$PVE:/tmp/deck-release/release.cmd"
@@ -86,8 +86,8 @@ grep -q "^version: $ver$" dist/latest-linux.yml || { echo "Linux build isn't $ve
 
 prev=$(git describe --tags --abbrev=0 2>/dev/null || true)
 notes=$(git log --format='- %s' ${prev:+"$prev"..}HEAD)
-gh release create "v$ver" --target "$(git rev-parse HEAD)" --title "Claude Deck $ver" --notes "$notes" \
-  "dist/Claude-Deck-$ver.AppImage" dist/latest-linux.yml \
-  "dist/win/Claude-Deck-Setup-$ver.exe" "dist/win/Claude-Deck-Setup-$ver.exe.blockmap" dist/win/latest.yml
+gh release create "v$ver" --target "$(git rev-parse HEAD)" --title "Inarch $ver" --notes "$notes" \
+  "dist/Inarch-$ver.AppImage" dist/latest-linux.yml \
+  "dist/win/Inarch-Setup-$ver.exe" "dist/win/Inarch-Setup-$ver.exe.blockmap" dist/win/latest.yml
 git fetch -q --tags
 echo "Released v$ver"

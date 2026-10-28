@@ -12,6 +12,8 @@ const addons = require('./addons');
 const version = require('./build/version');
 
 const IS_WIN = process.platform === 'win32';
+// renamed from Claude Deck: keep pins, the sync install-id and the sync checkout where existing installs have them
+app.setPath('userData', path.join(app.getPath('appData'), 'Claude Deck'));
 // launched from a desktop menu, PATH lacks what ~/.bashrc adds (brew, nvm), so claude's MCP servers and npx go missing.
 // Markers because interactive shells may print a banner.
 if (!IS_WIN) {
@@ -158,7 +160,7 @@ const installId = () => {
 const addonOpts = () => ({ home: os.homedir(), platform: process.platform, backup: path.join(app.getPath('userData'), 'addon-backup') });
 // gh as the credential helper for this repo only, so pushing needs no `gh auth setup-git`
 const git = args => sh('git', ['-c', 'credential.helper=', '-c', 'credential.helper=!gh auth git-credential',
-  '-c', 'user.name=Claude Deck', '-c', 'user.email=claude-deck@users.noreply.github.com', ...args], { cwd: syncDir(), timeout: 120000 });
+  '-c', 'user.name=Inarch', '-c', 'user.email=claude-deck@users.noreply.github.com', ...args], { cwd: syncDir(), timeout: 120000 });
 let syncing = false;
 // Clones the sync repo (creating it on GitHub only when `create`) and checks out GitHub's latest: the local clone is only a workspace
 async function syncRepo(fn, create = false) {
@@ -174,7 +176,7 @@ async function syncRepo(fn, create = false) {
       try { await sh('gh', ['repo', 'view', repo, '--json', 'name'], { cwd: os.homedir(), timeout: 30000 }); }
       catch {
         if (!create) return await fn({ login, deck: {}, isMain: false });
-        await sh('gh', ['repo', 'create', repo, '--private', '--description', 'Claude Code addons synced by Claude Deck'], { cwd: os.homedir(), timeout: 30000 });
+        await sh('gh', ['repo', 'create', repo, '--private', '--description', 'Claude Code addons synced by Inarch'], { cwd: os.homedir(), timeout: 30000 });
       }
       await sh('gh', ['repo', 'clone', repo, syncDir()], { cwd: os.homedir(), timeout: 120000 });
     }
@@ -287,7 +289,7 @@ ipcMain.on('pty:kill', (e, id) => { terms.get(id)?.kill(); terms.delete(id); unw
 function createWindow() {
   const win = new BrowserWindow({
     width: 1440, height: 920, minWidth: 900, minHeight: 600,
-    title: 'Claude Deck', backgroundColor: '#050505', show: false,
+    title: 'Inarch', backgroundColor: '#050505', show: false,
     icon: path.join(__dirname, 'build', 'icon.png'),
     titleBarStyle: 'hidden',
     titleBarOverlay: { color: '#0b0b0b', symbolColor: '#9e9e9e', height: 44 },

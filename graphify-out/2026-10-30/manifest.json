@@ -1,0 +1,56 @@
+{
+  "lib.js": {
+    "mtime": 1793078660.3582106,
+    "seen": 1793097818.0886517,
+    "ast_hash": "3b4e988e4d2dd23b2cb762f5089f377d",
+    "semantic_hash": ""
+  },
+  "main.js": {
+    "mtime": 1793095506.5212643,
+    "seen": 1793097818.08866,
+    "ast_hash": "9dd2f60197afb7ef12158602df406ec4",
+    "semantic_hash": ""
+  },
+  "package.json": {
+    "mtime": 1793093782.6385474,
+    "seen": 1793097818.0886652,
+    "ast_hash": "23062a8ad3467570def3ef1970607999",
+    "semantic_hash": ""
+  },
+  "preload.js": {
+    "mtime": 1793093782.1141596,
+    "seen": 1793097818.0886695,
+    "ast_hash": "ab53aad41711c493c98106132e988ab7",
+    "semantic_hash": ""
+  },
+  "renderer.js": {
+    "mtime": 1793095508.260722,
+    "seen": 1793097818.0886722,
+    "ast_hash": "1f0d1104ad71751b1bd60943edd3c21a",
+    "semantic_hash": ""
+  },
+  "test.js": {
+    "mtime": 1793093831.018693,
+    "seen": 1793097818.0886757,
+    "ast_hash": "dcc88644fe1a9fc72f65c5dc06804ac7",
+    "semantic_hash": ""
+  },
+  "README.md": {
+    "mtime": 1793094006.9517534,
+    "seen": 1793097818.088679,
+    "ast_hash": "4f63ae238d2603db65aa9ecc0e45116f",
+    "semantic_hash": ""
+  },
+  "index.html": {
+    "mtime": 1793095511.7128525,
+    "seen": 1793097818.0886817,
+    "ast_hash": "7342b16f8bba5f110f48e7d358f90f4c",
+    "semantic_hash": ""
+  },
+  "addons.js": {
+    "mtime": 1793093748.9650764,
+    "seen": 1793097818.0886352,
+    "ast_hash": "3db6664e48ed9a6ff6a6b57655d61697",
+    "semantic_hash": ""
+  }
+}

@@ -187,7 +187,7 @@ async function openTerm({ cwd, kind = 'claude', args = [], title }) {
     if (e.shiftKey && k === 'f') { openFind(); return false; }
     if (e.shiftKey && k === 'p') { togglePreview(); return false; }
     if ((e.shiftKey && (k === 't' || k === 'w')) || k === 'tab') return false; // app shortcuts, not for the pty
-    if (k === 'v') { deck.readClip().then(txt => txt && term.paste(txt)); return false; }
+    if (k === 'v') { e.preventDefault(); deck.readClip().then(txt => txt && term.paste(txt)); return false; }
     return true;
   });
   el.addEventListener('contextmenu', async e => {

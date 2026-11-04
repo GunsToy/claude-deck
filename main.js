@@ -220,8 +220,9 @@ const watchers = new Map();
 const previewable = new Set();
 function watchCwd(id, cwd, wc) {
   try {
-    // shortcut: recursive fs.watch walks the whole tree on Linux; fine for project folders, slow for a session started in ~
-    const w = fs.watch(cwd, { recursive: true }, (ev, name) => {
+    // On Linux, recursive fs.watch walks the tree synchronously: in ~ that froze the window ~30s, then threw an uncaught EACCES.
+    // shortcut: Linux previews only files written to the session's top folder; upgrade with an async walk that skips node_modules/.git
+    const w = fs.watch(cwd, { recursive: process.platform !== 'linux' }, (ev, name) => {
       if (!name || !PREVIEWABLE.test(name) || NOISE.test(name)) return;
       const file = path.join(cwd, name);
       fs.stat(file, (err, st) => {

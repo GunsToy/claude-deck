@@ -190,12 +190,24 @@ async function openTerm({ cwd, kind = 'claude', args = [], title }) {
     if (k === 'v') { e.preventDefault(); deck.readClip().then(txt => txt && term.paste(txt)); return false; }
     return true;
   });
-  // xterm clears the selection on any mousedown (and forwards it in mouse mode), so keep right-clicks for the menu
-  el.addEventListener('mousedown', e => { if (e.button === 2) e.stopPropagation(); }, true);
+  // Claude Code runs in mouse mode and draws its own selection, sending the text as OSC 52 (ESC ] 52 ; c ; <base64>).
+  // Write it to the clipboard like other terminals do, and keep it for the menu's Copy. Clipboard reads ("?") are refused.
+  let appSel = '';
+  term.parser.registerOscHandler(52, data => {
+    const b64 = data.slice(data.indexOf(';') + 1);
+    if (b64 === '?') return true;
+    try { appSel = new TextDecoder().decode(Uint8Array.from(atob(b64), c => c.charCodeAt(0))); } catch { return true; }
+    if (appSel) deck.writeClip(appSel);
+    return true;
+  });
+  // xterm clears the selection on any mousedown (and forwards it in mouse mode), so keep right-clicks for the menu;
+  // a left click starts a new selection, so the app's last one is stale
+  el.addEventListener('mousedown', e => { if (e.button === 2) e.stopPropagation(); else appSel = ''; }, true);
   el.addEventListener('contextmenu', async e => {
     e.preventDefault();
-    const pick = await deck.clipMenu(term.hasSelection());
-    if (pick === 'copy') { await deck.writeClip(term.getSelection()); term.clearSelection(); toast('Copied'); }
+    const sel = term.getSelection() || appSel;
+    const pick = await deck.clipMenu(!!sel);
+    if (pick === 'copy') { await deck.writeClip(sel); term.clearSelection(); toast('Copied'); }
     if (pick === 'paste') { const txt = await deck.readClip(); if (txt) term.paste(txt); }
     term.focus();
   });

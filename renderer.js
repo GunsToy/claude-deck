@@ -190,6 +190,8 @@ async function openTerm({ cwd, kind = 'claude', args = [], title }) {
     if (k === 'v') { e.preventDefault(); deck.readClip().then(txt => txt && term.paste(txt)); return false; }
     return true;
   });
+  // xterm clears the selection on any mousedown (and forwards it in mouse mode), so keep right-clicks for the menu
+  el.addEventListener('mousedown', e => { if (e.button === 2) e.stopPropagation(); }, true);
   el.addEventListener('contextmenu', async e => {
     e.preventDefault();
     const pick = await deck.clipMenu(term.hasSelection());

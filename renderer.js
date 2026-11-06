@@ -192,8 +192,10 @@ async function openTerm({ cwd, kind = 'claude', args = [], title }) {
   });
   el.addEventListener('contextmenu', async e => {
     e.preventDefault();
-    if (term.hasSelection()) { await deck.writeClip(term.getSelection()); term.clearSelection(); toast('Copied'); }
-    else { const txt = await deck.readClip(); if (txt) term.paste(txt); }
+    const pick = await deck.clipMenu(term.hasSelection());
+    if (pick === 'copy') { await deck.writeClip(term.getSelection()); term.clearSelection(); toast('Copied'); }
+    if (pick === 'paste') { const txt = await deck.readClip(); if (txt) term.paste(txt); }
+    term.focus();
   });
   new ResizeObserver(() => { if (!el.hidden) fit.fit(); }).observe(el);
 

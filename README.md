@@ -88,6 +88,6 @@ npm run dist        # Windows: dist/Inarch-Setup-<version>.exe + portable exe
 | Ctrl+Shift+F | Find in the current terminal (Enter / Shift+Enter for next / previous, Esc to close) |
 | Ctrl+Shift+C | Copy the selection |
 | Ctrl+V | Paste |
-| Right-click | Copy the selection, or paste if nothing is selected |
+| Right-click | Copy / Paste menu (select text first to copy it) |
 
 `npm test` runs the self-check for project and session discovery.

@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld('deck', {
   unpin: dir => ipcRenderer.invoke('pin:remove', dir),
   readClip: () => ipcRenderer.invoke('clip:read'),
   writeClip: t => ipcRenderer.invoke('clip:write', t),
+  clipMenu: canCopy => ipcRenderer.invoke('clip:menu', canCopy),
   version: () => ipcRenderer.invoke('version'),
   githubNew: () => ipcRenderer.invoke('github:new'),
   githubClone: name => ipcRenderer.invoke('github:clone', name),

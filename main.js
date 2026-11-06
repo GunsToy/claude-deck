@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, clipboard } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, clipboard, Menu } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -43,6 +43,14 @@ ipcMain.handle('report', (e, dir) => fs.promises.readFile(path.join(dir, 'graphi
 ipcMain.handle('open-folder', (e, dir) => isDir(dir) && shell.openPath(dir));
 ipcMain.handle('clip:read', () => clipboard.readText());
 ipcMain.handle('clip:write', (e, t) => clipboard.writeText(String(t)));
+// resolves to 'copy', 'paste' or null when the menu closes without a pick
+ipcMain.handle('clip:menu', (e, canCopy) => new Promise(resolve => {
+  let pick = null;
+  Menu.buildFromTemplate([
+    { label: 'Copy', enabled: !!canCopy, click: () => { pick = 'copy'; } },
+    { label: 'Paste', enabled: !!clipboard.readText(), click: () => { pick = 'paste'; } },
+  ]).popup({ window: BrowserWindow.fromWebContents(e.sender), callback: () => resolve(pick) });
+}));
 ipcMain.handle('pin:pick', async e => {
   const r = await dialog.showOpenDialog(BrowserWindow.fromWebContents(e.sender), { properties: ['openDirectory'] });
   if (r.canceled || !r.filePaths[0]) return null;

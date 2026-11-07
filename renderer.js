@@ -417,7 +417,8 @@ async function checkGithub() {
   $('ghList').innerHTML =
     (fresh.length ? `<h3>Not on this computer</h3>${fresh.map(r => ghRow('clone', r.nameWithOwner, r.name, r.description || r.nameWithOwner)).join('')}` : '') +
     (behind.length ? `<h3>Behind GitHub</h3>${behind.map(r => ghRow('pull', r.path, r.name,
-      `${r.behind} new commit${r.behind > 1 ? 's' : ''} on ${r.branch || 'the current branch'}`)).join('')}` : '');
+      `${r.behind} new commit${r.behind > 1 ? 's' : ''} on ${r.branch || 'the current branch'}` +
+      (r.ahead ? `, ${r.ahead} local commit${r.ahead > 1 ? 's' : ''} will be rebased on top (push them after)` : ''))).join('')}` : '');
   $('ghDialog').showModal();
 }
 const ghBoxes = () => [...$('ghList').querySelectorAll('input')];

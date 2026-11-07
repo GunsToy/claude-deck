@@ -144,8 +144,8 @@ ipcMain.handle('github:behind', async () => {
   const behind = (await Promise.all(repos.map(async p => {
     try {
       await sh('git', ['fetch', '--quiet'], { cwd: p.path, timeout: 30000 });
-      const n = Number(await sh('git', ['rev-list', '--count', 'HEAD..@{u}'], { cwd: p.path }));
-      return n ? { path: p.path, name: p.name, branch: p.branch, behind: n } : null;
+      const [ahead, n] = (await sh('git', ['rev-list', '--left-right', '--count', 'HEAD...@{u}'], { cwd: p.path })).trim().split(/\s+/).map(Number);
+      return n ? { path: p.path, name: p.name, branch: p.branch, behind: n, ahead } : null;
     } catch { return null; } // no upstream, offline, or no access
   }))).filter(Boolean);
   offeredPull = new Set(behind.map(r => r.path));
@@ -153,7 +153,14 @@ ipcMain.handle('github:behind', async () => {
 });
 ipcMain.handle('github:pull', async (e, dir) => {
   if (!offeredPull.has(dir)) throw new Error(`${dir} wasn't offered for pulling.`);
-  await sh('git', ['pull', '--ff-only'], { cwd: dir, timeout: 120000 });
+  const ahead = Number(await sh('git', ['rev-list', '--count', '@{u}..HEAD'], { cwd: dir }));
+  if (!ahead) return sh('git', ['pull', '--ff-only'], { cwd: dir, timeout: 120000 });
+  // local commits not on GitHub: a fast-forward can't work, so replay them on top
+  try { await sh('git', ['pull', '--rebase', '--autostash'], { cwd: dir, timeout: 120000 }); }
+  catch (err) {
+    await sh('git', ['rebase', '--abort'], { cwd: dir }).catch(() => {});
+    throw new Error(`Your ${ahead} local commit${ahead > 1 ? 's' : ''} conflict with GitHub. Rebase by hand.`);
+  }
 });
 // keys are "owner/name" for new repos and folder paths for ones that are behind
 ipcMain.handle('github:ignore', (e, keys) =>

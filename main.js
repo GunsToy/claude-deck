@@ -30,6 +30,19 @@ const writePins = pins => fs.writeFileSync(pinsFile(), JSON.stringify(pins, null
 const isDir = p => { try { return fs.statSync(p).isDirectory(); } catch { return false; } };
 const ignoredFile = () => path.join(app.getPath('userData'), 'github-ignored.json');
 const readIgnored = () => { try { return JSON.parse(fs.readFileSync(ignoredFile(), 'utf8')); } catch { return []; } };
+// MCP config giving each Claude session a read-only screenshot tool, run by this Electron binary in Node mode,
+// plus a hook that only lets it run when the user's latest message says "look".
+// The script is unpacked from the asar so the child processes can read it as a plain file.
+function screenTool() {
+  const dir = app.getPath('userData');
+  const script = path.join(__dirname, 'screen-mcp.js').replace(`app.asar${path.sep}`, `app.asar.unpacked${path.sep}`);
+  const mcp = path.join(dir, 'screen-mcp.json'), settings = path.join(dir, 'screen-settings.json');
+  fs.writeFileSync(mcp, JSON.stringify({ mcpServers: { 'inarch-screen': { type: 'stdio', command: process.execPath, args: [script], env: { ELECTRON_RUN_AS_NODE: '1' } } } }, null, 2));
+  // hooks run in a shell (Git Bash on Windows), so forward slashes and an inline env var
+  const q = p => `"${p.replace(/\\/g, '/')}"`;
+  fs.writeFileSync(settings, JSON.stringify({ hooks: { PreToolUse: [{ matcher: 'mcp__inarch-screen__screenshot', hooks: [{ type: 'command', command: `ELECTRON_RUN_AS_NODE=1 ${q(process.execPath)} ${q(script)} --gate` }] }] } }, null, 2));
+  return ['--settings', settings, '--mcp-config', mcp];
+}
 
 // packaged builds carry the version build/dist.js gave them; a dev run works it out from git
 ipcMain.handle('version', () => { try { return app.isPackaged ? app.getVersion() : `${version(__dirname)}-dev`; } catch { return app.getVersion(); } });
@@ -284,6 +297,8 @@ ipcMain.handle('pty:spawn', (e, { cwd, kind, args = [], cols = 100, rows = 30 })
   } else {
     const claude = lib.findClaude();
     if (!claude) throw new Error('Claude Code is not installed or not on PATH.');
+    // last, because --mcp-config takes several values and would swallow a prompt after it
+    args = [...args, ...screenTool()];
     [file, argv] = claude.endsWith('.cmd') ? ['cmd.exe', ['/c', claude, ...args]] : [claude, args];
   }
   const env = { ...process.env, TERM: 'xterm-256color', COLORTERM: 'truecolor' };

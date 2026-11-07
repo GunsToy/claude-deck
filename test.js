@@ -82,5 +82,24 @@ const addons = require('./addons');
   fs.writeFileSync(path.join(b, '.claude.json'), '{broken');
   assert.throws(() => addons.importAddons(repo, { home: b, platform: 'test', backup: path.join(tmp, 'backup') }), /Can't read/, 'never overwrite a broken file');
   fs.rmSync(tmp, { recursive: true, force: true });
+
+  // screen MCP server: handshake and tool list over stdio (no screenshot taken, so no display needed)
+  const out = require('child_process').execFileSync(process.execPath, [path.join(__dirname, 'screen-mcp.js')], {
+    input: ['{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}',
+      '{"jsonrpc":"2.0","method":"notifications/initialized"}', '{"jsonrpc":"2.0","id":2,"method":"tools/list"}',
+      '{"jsonrpc":"2.0","id":3,"method":"nope"}', ''].join('\n'), encoding: 'utf8', timeout: 5000,
+  }).trim().split('\n').map(l => JSON.parse(l));
+  assert.strictEqual(out.length, 3, 'notifications get no reply');
+  assert.strictEqual(out[0].result.serverInfo.name, 'inarch-screen');
+  assert.deepStrictEqual(out[1].result.tools.map(t => t.name), ['screenshot']);
+  assert.strictEqual(out[2].error.code, -32601);
+  // the screenshot only runs when the latest typed message says "look"
+  const { saysLook } = require('./screen-mcp');
+  const u = c => JSON.stringify({ type: 'user', message: { content: c } });
+  assert.ok(saysLook([u('hi'), u('look at my screen')].join('\n')));
+  assert.ok(saysLook([u('Look'), u([{ type: 'tool_result', content: 'x' }])].join('\n')), 'tool results are not prompts');
+  assert.ok(!saysLook([u('look'), u('fix the bug')].join('\n')), 'only the latest prompt counts');
+  assert.ok(!saysLook(u('it looks wrong')), 'whole word only');
+  assert.ok(!saysLook(''));
   console.log('ok');
 })().catch(e => { console.error(e); process.exit(1); });

@@ -19,6 +19,10 @@ You'll need [Claude Code](https://claude.com/claude-code) installed to start ses
 
 **Set up REA** on the home screen runs `npx rea-agents setup` in a terminal tab, which installs [REA](https://github.com/morluto/rea) (Reverse Engineer Anything) for Claude Code. On a project, **Reverse engineer…** asks you to pick an app or binary, then starts a Claude session in that project that uses REA on it.
 
+## Screen
+
+Every Claude session started from Inarch gets a read-only `screenshot` tool (MCP server `inarch-screen`). It captures all monitors and can't click or type. It only works when your latest message contains the word **look** (for example "look at my screen"). In any other message, a hook blocks it. On Linux it uses the desktop's screenshot portal and Python's GObject bindings, which GNOME and KDE desktops ship with. On Windows it uses PowerShell.
+
 ## Usage and updates
 
 The bars at the bottom of the sidebar show your Claude plan usage: the 5-hour session window and the week, with when each resets. They use Claude Code's login, so sign in to Claude Code first. They refresh every 5 minutes and when you click **Refresh**.

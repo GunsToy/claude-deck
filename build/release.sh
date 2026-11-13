@@ -2,7 +2,7 @@
 # npm run release: builds the Linux AppImage here and the Windows installer in the Win11 VM on Proxmox,
 # then publishes both to the GitHub Release v<version> that the in-app Updates button installs from.
 # Needs: gh signed in, `ssh $PVE` as root on the Proxmox host, and in the VM the QEMU guest agent plus
-# portable Node and MinGit under C:\build (see README).
+# portable Node and MinGit under C:\build (see README). From Windows (Git Bash) the AppImage builds in WSL's ~/deck-build.
 set -euo pipefail
 PVE=${PVE:-pve} VMID=${VMID:-111} PVE_IP=${PVE_IP:-192.168.0.12} PORT=${PORT:-8766}
 WIN_NODE=${WIN_NODE:-'C:\build\node-v24.22.1-win-x64'} WIN_GIT=${WIN_GIT:-'C:\build\git\cmd'}
@@ -61,21 +61,29 @@ del ..\\deck.bundle
 EOF
 scp -q "$work/release.cmd" "$PVE:/tmp/deck-release/release.cmd"
 pid=$(ssh "$PVE" "pvesh create /nodes/\$(hostname)/qemu/$VMID/agent/file-write --file C:/deck-release.cmd --content \"\$(cat /tmp/deck-release/release.cmd)\" >/dev/null &&
-  qm guest exec $VMID --timeout 1 -- cmd /c C:/deck-release.cmd 2>/dev/null" | python3 -c 'import json,sys; print(json.load(sys.stdin)["pid"])')
+  qm guest exec $VMID --timeout 1 -- cmd /c C:/deck-release.cmd 2>/dev/null" | node -e 'let s=""; process.stdin.on("data", d => s += d).on("end", () => console.log(JSON.parse(s).pid))')
 echo "Windows build running in VM $VMID; building Linux here meanwhile"
 
-npm run dist -- --linux AppImage >"$work/linux.log" 2>&1 || { tail -20 "$work/linux.log"; exit 1; }
+if [ "$(uname -s)" = Linux ]; then
+  npm run dist -- --linux AppImage >"$work/linux.log" 2>&1 || { tail -20 "$work/linux.log"; exit 1; }
+else
+  # on Windows the AppImage is built in WSL, in the ~/deck-build clone whose origin is this repo
+  MSYS_NO_PATHCONV=1 wsl.exe -e bash -lc "cd ~/deck-build && git fetch -q origin main && git reset -q --hard FETCH_HEAD &&
+    npm install --no-audit --no-fund && npm run dist -- --linux AppImage &&
+    cp dist/Inarch-$ver.AppImage dist/latest-linux.yml \"\$(wslpath '$(pwd -W)')/dist/\"" >"$work/linux.log" 2>&1 ||
+    { tail -20 "$work/linux.log"; exit 1; }
+fi
 
 while :; do
   st=$(ssh "$PVE" "qm guest exec-status $VMID $pid")
-  if python3 -c 'import json,sys; sys.exit(0 if json.loads(sys.argv[1]).get("exited") else 1)' "$st"; then break; fi
+  if node -e 'process.exit(JSON.parse(process.argv[1]).exited ? 0 : 1)' "$st"; then break; fi
   sleep 10
 done
 ssh "$PVE" "qm guest exec $VMID --timeout 30 -- cmd /c del C:\\\\deck-release.cmd" >/dev/null || true
-code=$(python3 -c 'import json,sys; d=json.loads(sys.argv[1]); print(d.get("exitcode", 1))' "$st")
+code=$(node -p 'JSON.parse(process.argv[1]).exitcode ?? 1' "$st")
 if [ "$code" != 0 ]; then
   echo "Windows build failed (exit $code):"
-  python3 -c 'import json,sys; d=json.loads(sys.argv[1]); print((d.get("out-data","") + d.get("err-data",""))[-3000:])' "$st"
+  node -p 'const d = JSON.parse(process.argv[1]); ((d["out-data"] || "") + (d["err-data"] || "")).slice(-3000)' "$st"
   exit 1
 fi
 

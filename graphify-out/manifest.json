@@ -1,45 +1,45 @@
 {
   "lib.js": {
     "mtime": 1794551692.8326678,
-    "seen": 1794586014.4224436,
+    "seen": 1794586587.585196,
     "ast_hash": "1b79d3258529da3c9307dd5018fa95b5",
-    "semantic_hash": ""
+    "semantic_hash": "1b79d3258529da3c9307dd5018fa95b5"
   },
   "main.js": {
     "mtime": 1794551692.8326678,
-    "seen": 1794586014.4224484,
+    "seen": 1794586587.5852075,
     "ast_hash": "1a1eb1a979afa0b47bf1b3e4862d5320",
-    "semantic_hash": ""
+    "semantic_hash": "1a1eb1a979afa0b47bf1b3e4862d5320"
   },
   "package.json": {
     "mtime": 1794551692.8366678,
-    "seen": 1794586014.4224517,
+    "seen": 1794586587.5852141,
     "ast_hash": "626126a498fcc76358a58c7ee997ee42",
-    "semantic_hash": ""
+    "semantic_hash": "626126a498fcc76358a58c7ee997ee42"
   },
   "preload.js": {
     "mtime": 1794551692.8366678,
-    "seen": 1794586014.4224546,
+    "seen": 1794586587.5852203,
     "ast_hash": "e1929a1e618b6470f2e7a206885ab468",
-    "semantic_hash": ""
+    "semantic_hash": "e1929a1e618b6470f2e7a206885ab468"
   },
   "renderer.js": {
     "mtime": 1794551692.8366678,
-    "seen": 1794586014.4224575,
+    "seen": 1794586587.5852249,
     "ast_hash": "3326fdd3f783d5601c0a6a7fb842e605",
-    "semantic_hash": ""
+    "semantic_hash": "3326fdd3f783d5601c0a6a7fb842e605"
   },
   "test.js": {
     "mtime": 1794551692.8366678,
-    "seen": 1794586014.422463,
+    "seen": 1794586587.5852337,
     "ast_hash": "f71f3c17e9d7e2c7e30c708992a6f58b",
-    "semantic_hash": ""
+    "semantic_hash": "f71f3c17e9d7e2c7e30c708992a6f58b"
   },
   "README.md": {
     "mtime": 1794551692.8206675,
-    "seen": 1794586014.4224653,
+    "seen": 1794586587.5852382,
     "ast_hash": "fae7a513871ab1db42b167c4517e7aba",
-    "semantic_hash": ""
+    "semantic_hash": "fae7a513871ab1db42b167c4517e7aba"
   },
   "index.html": {
     "mtime": 1794551692.8326678,
@@ -55,8 +55,8 @@
   },
   "screen-mcp.js": {
     "mtime": 1794551692.8366678,
-    "seen": 1794586014.4224603,
+    "seen": 1794586587.5852294,
     "ast_hash": "54cf11069b88fd01a62d1573b6f9cadc",
-    "semantic_hash": ""
+    "semantic_hash": "54cf11069b88fd01a62d1573b6f9cadc"
   }
 }

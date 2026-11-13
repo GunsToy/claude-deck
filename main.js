@@ -80,7 +80,7 @@ ipcMain.handle('pin:remove', (e, dir) => writePins(readPins().filter(p => p !== 
 ipcMain.handle('usage', async () => {
   let o;
   try { o = JSON.parse(fs.readFileSync(path.join(os.homedir(), '.claude', '.credentials.json'), 'utf8')).claudeAiOauth; } catch { /* not signed in */ }
-  if (!o?.accessToken) return { error: 'Sign in to Claude Code to see usage.' };
+  if (!o?.accessToken) return { signedOut: true };
   // refreshing here would rotate Claude Code's refresh token under it, so leave that to Claude Code
   if (o.expiresAt < Date.now()) return { error: 'Login expired. Start a Claude session to renew it.' };
   try {

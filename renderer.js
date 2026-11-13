@@ -340,12 +340,17 @@ const meter = (label, w) => {
 const cachedUsage = () => { try { return JSON.parse(localStorage.usage); } catch { return null; } };
 const renderUsage = u => ($('usage').innerHTML = meter('Session (5h)', u.session) + meter('Week', u.week) +
   (u.error ? `<small class="dim">${esc(u.error)}${u.at ? ` Showing figures from ${ago(u.at)}.` : ''}</small>` : ''));
+let signedOut = false;
 async function loadUsage() {
   const u = await deck.usage();
+  if ((signedOut = !!u.signedOut)) return ($('usage').innerHTML = '<button class="ghost-btn" id="loginBtn">Log in to Claude</button>');
   if (!u.error) try { localStorage.usage = JSON.stringify({ ...u, at: Date.now() }); } catch { /* storage unavailable */ }
   renderUsage(u.error ? { ...cachedUsage(), error: u.error } : u);
 }
 setInterval(loadUsage, 5 * 60000);
+// /login finishes in the browser, so re-check when the user comes back to Deck
+addEventListener('focus', () => signedOut && loadUsage());
+$('usage').onclick = e => e.target.id === 'loginBtn' && openTerm({ cwd: $('homeProject').value, args: ['/login'], title: 'Log in' });
 
 // ---------- preview ----------
 let previewFiles = []; // newest first: { file, cwd }

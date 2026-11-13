@@ -25,7 +25,7 @@ Every Claude session started from Inarch gets a read-only `screenshot` tool (MCP
 
 ## Usage and updates
 
-The bars at the bottom of the sidebar show your Claude plan usage: the 5-hour session window and the week, with when each resets. They use Claude Code's login, so sign in to Claude Code first. They refresh every 5 minutes and when you click **Refresh**.
+The bars at the bottom of the sidebar show your Claude plan usage: the 5-hour session window and the week, with when each resets. They use Claude Code's login; when you are signed out, a **Log in to Claude** button takes their place and opens a session that runs `/login`. They refresh every 5 minutes and when you click **Refresh**.
 
 **Updates** checks this repo's GitHub Releases for a newer version, downloads it with a progress bar, installs it and restarts. Installed copies don't need the source code, build tools or a GitHub login.
 
